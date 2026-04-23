@@ -1,0 +1,15 @@
+Tipo,Media_dias,Mediana_dias,Max_dias,Veiculacoes
+Podcast,12.0,12.0,12.0,1
+Especial,5.4,4.0,27.0,243
+Projeto de Lei,3.0,4.0,11.0,138
+Legislação,4.2,3.0,35.0,1051
+Moção,4.9,3.0,19.0,194
+Comissão,3.6,2.0,41.0,4047
+Plenário,3.7,2.0,46.0,1930
+Ordem do Dia,3.6,2.0,41.0,2623
+Evento,4.0,2.0,35.0,1102
+Institucional,2.5,2.0,37.0,386
+Sessão,2.8,2.0,9.0,293
+Audiência Pública,3.1,1.0,47.0,925
+Frentes e Bancadas,3.4,1.0,33.0,715
+Outros,2.5,1.0,37.0,5862

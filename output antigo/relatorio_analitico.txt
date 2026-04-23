@@ -1,0 +1,88 @@
+=================================================================
+RELATÓRIO ANALÍTICO — RÁDIO ALESC
+Período: 2023-01-02 → 2026-03-31
+=================================================================
+
+── VISÃO GERAL ──────────────────────────────────────────────
+Total de veiculações:       22,495
+  2023: 8,577 veiculações
+  2024: 6,184 veiculações
+  2025: 6,518 veiculações
+  2026: 1,216 veiculações
+Rádios parceiras ativas:    272
+Municípios alcançados:      116 de 295 em SC
+Tipo mais veiculado:        Outros (7,681)
+
+── COBERTURA TERRITORIAL ────────────────────────────────────
+  2023: 103 municípios — 69.6% da população de SC
+  2024: 112 municípios — 71.6% da população de SC
+  2025: 103 municípios — 68.7% da população de SC
+  2026: 62 municípios — 56.4% da população de SC
+
+  Cobertura acumulada (histórico): 72.5% da população de SC
+
+── ÍNDICE DE GINI TERRITORIAL ───────────────────────────────
+  Gini = 0.662
+  Interpretação: cobertura fortemente concentrada
+
+── REDE DE PARCEIROS ────────────────────────────────────────
+  Concentração top 10 rádios: 30.9% das veiculações
+  Rádios com presença contínua (100%):   198
+  Rádios com presença irregular (<75%):  4
+  Ano com mais saídas de parceiros: 2026
+
+── LACUNAS ESTRATÉGICAS (15 cidades >20k hab.) ──
+  → São José: 253,705 hab.
+  → Palhoça: 178,679 hab.
+  → Camboriú: 87,179 hab.
+  → Navegantes: 85,734 hab.
+  → Biguaçu: 70,471 hab.
+  → Içara: 58,055 hab.
+  → Guaramirim: 46,757 hab.
+  → Araquari: 40,890 hab.
+
+── ÍNDICE DE INTENSIDADE (veiculações/10k hab.) ─────────────
+  Municípios com MAIOR intensidade (possível saturação):
+    Itá                              2204.9 (1343 veic. / 6,091 hab.)
+    Cunha Porã                        810.8 (904 veic. / 11,150 hab.)
+    Tangará                           464.8 (402 veic. / 8,648 hab.)
+    Dona Emma                         442.7 (187 veic. / 4,224 hab.)
+    Xaxim                             436.5 (1277 veic. / 29,254 hab.)
+    Erval Velho                       361.7 (160 veic. / 4,423 hab.)
+    Treze Tílias                      347.8 (283 veic. / 8,138 hab.)
+    Pinhalzinho                       324.6 (685 veic. / 21,103 hab.)
+
+  Municípios com MENOR intensidade (potencial subatendido):
+    União da Vitória                    1.0 (6 veic. / 57,768 hab.)
+    Imbituba                            1.1 (5 veic. / 45,711 hab.)
+    Itapema                             1.4 (10 veic. / 69,323 hab.)
+    Indaial                             1.9 (14 veic. / 72,346 hab.)
+    Balneário Camboriú                  2.3 (34 veic. / 149,227 hab.)
+    Canoinhas                           2.4 (13 veic. / 54,558 hab.)
+    Porto Belo                          2.7 (6 veic. / 22,466 hab.)
+    Joinville                           3.8 (232 veic. / 604,708 hab.)
+
+── DINÂMICA DE COBERTURA ────────────────────────────────────
+  Municípios: entradas e saídas por transição de ano
+    2023→2024: -2 perdidos, +11 novos (saldo +9)
+    2024→2025: -12 perdidos, +3 novos (saldo -9)
+    2025→2026: -42 perdidos, +1 novos (saldo -41)
+
+  Rádios: movimentação e taxa de retenção por ano
+    2024: 22 saíram | 61 novas | 0 retornaram | 178 persistentes | retenção 89.0% | 239 ativas
+    2025: 81 saíram | 9 novas | 4 retornaram | 158 persistentes | retenção 66.1% | 171 ativas
+    2026: 79 saíram | 2 novas | 5 retornaram | 92 persistentes | retenção 53.8% | 99 ativas
+
+  População coberta por ano (municípios únicos × pop. IBGE 2021)
+    2023: 103 municípios — 5,300,575 hab. (69.7% de SC) | audiência potencial: 4,240,460 pessoas
+    2024: 112 municípios — 5,446,778 hab. (71.6% de SC) | audiência potencial: 4,357,422 pessoas
+    2025: 103 municípios — 5,231,288 hab. (68.7% de SC) | audiência potencial: 4,185,030 pessoas
+    2026: 62 municípios — 4,290,543 hab. (56.4% de SC) | audiência potencial: 3,432,434 pessoas
+
+── FRASES PRONTAS PARA APRESENTAÇÃO ────────────────────────
+  'A Rádio Alesc distribuiu 22,495 veiculações entre 2023 e 2026,'
+  'alcançando 116 municípios catarinenses.'
+  'Em 2026, a programação alcançou municípios onde vivem 56.4% dos catarinenses.'
+  'Há 15 cidades com mais de 20 mil habitantes ainda sem cobertura — oportunidade concreta de expansão.'
+
+=================================================================

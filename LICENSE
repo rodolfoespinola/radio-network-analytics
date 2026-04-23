@@ -1,0 +1,160 @@
+Versão 1.1 — março de 2026
+Copyright (c) 2024–2026 Rodolfo Zalzwedel Espínola
+
+LICENÇA DE USO — USO NÃO-COMERCIAL LIVRE / USO INSTITUCIONAL E COMERCIAL MEDIANTE AUTORIZAÇÃO
+
+1. PERMISSÕES (uso não-comercial individual)
+
+   É permitido, gratuitamente e sem restrições, para qualquer pessoa física que
+   obtenha uma cópia deste software e dos arquivos associados:
+   - Usar, copiar, estudar e modificar o código para fins educacionais,
+     acadêmicos, de pesquisa ou de portfólio pessoal;
+   - Distribuir cópias ou versões modificadas do código desde que esta licença
+     seja mantida integralmente e a autoria original seja atribuída de forma
+     visível (ver cláusula 3).
+
+2. RESTRIÇÕES (uso institucional e comercial)
+
+   Qualquer uso institucional ou comercial deste software é EXPRESSAMENTE
+   PROIBIDO sem autorização prévia e por escrito do autor. Considera-se uso
+   institucional ou comercial, sem limitação:
+   - Implantação do sistema em qualquer instituição pública ou privada,
+     independentemente de haver remuneração direta ao autor — o porte ou
+     natureza jurídica da instituição não isenta a obrigação de autorização;
+   - Adaptação do sistema para funcionar com outras fontes de dados, plataformas
+     ou infraestruturas institucionais, mesmo que o código resultante seja
+     substancialmente modificado;
+   - Prestação de serviços de análise de dados utilizando este código como base,
+     integral ou parcialmente;
+   - Desenvolvimento de produtos, plataformas ou soluções derivadas com fins
+     lucrativos ou de uso interno institucional;
+   - Licenciamento ou sublicenciamento a terceiros.
+
+3. ATRIBUIÇÃO OBRIGATÓRIA
+
+   Qualquer uso permitido por esta licença — incluindo modificações e
+   distribuições — deve manter de forma visível:
+   - O nome do autor original: Rodolfo Zalzwedel Espínola
+   - A referência ao repositório original
+   - Esta licença integralmente
+
+   A remoção, ocultação ou substituição da autoria original, mesmo em versões
+   modificadas, é expressamente proibida.
+
+4. DEMONSTRAÇÕES E ACESSO PARA AVALIAÇÃO
+
+   O acesso ao código ou a demonstrações do sistema para fins de avaliação
+   institucional — incluindo apresentações, capturas de tela, cópias para
+   análise interna ou provas de conceito — não constitui autorização de uso.
+   Qualquer intenção de implantação após avaliação requer negociação formal
+   com o autor antes do início de qualquer desenvolvimento derivado.
+
+5. DADOS
+
+   Esta licença aplica-se exclusivamente ao código-fonte. Os dados de veiculação
+   utilizados na produção original não estão incluídos neste repositório e
+   permanecem sob os termos de uso da plataforma de origem.
+
+6. ISENÇÃO DE GARANTIAS
+
+   Este software é fornecido "no estado em que se encontra", sem garantia de
+   qualquer tipo, expressa ou implícita. O autor não se responsabiliza por
+   quaisquer danos decorrentes do uso deste software.
+
+7. LEI APLICÁVEL
+
+   Esta licença é regida pela Lei nº 9.610/1998 (Lei de Direitos Autorais
+   brasileira). Em caso de conflito entre jurisdições, aplica-se a interpretação
+   mais restritiva em favor do autor.
+
+8. CONTATO PARA USO INSTITUCIONAL OU COMERCIAL
+
+   Para solicitar autorização de uso, discutir adaptações institucionais ou
+   negociar contratos de prestação de serviço, entre em contato:
+   [seu e-mail ou LinkedIn aqui]
+
+---
+
+## LICENSE (English version) — v1.1, March 2026
+
+Copyright (c) 2024–2026 Rodolfo Zalzwedel Espínola
+
+NON-COMMERCIAL USE LICENSE / INSTITUTIONAL AND COMMERCIAL USE REQUIRES AUTHORIZATION
+
+1. PERMISSIONS (individual non-commercial use)
+
+   Permission is hereby granted, free of charge, to any individual obtaining a
+   copy of this software and associated files to:
+   - Use, copy, study, and modify the code for educational, academic, research,
+     or personal portfolio purposes;
+   - Distribute copies or modified versions of the code, provided this license
+     is kept intact and the original authorship is clearly attributed (see
+     clause 3).
+
+2. RESTRICTIONS (institutional and commercial use)
+
+   Any institutional or commercial use of this software is EXPRESSLY PROHIBITED
+   without prior written authorization from the author. Institutional or
+   commercial use includes, without limitation:
+   - Deploying the system within any public or private institution, regardless
+     of whether direct compensation is paid to the author — the institution's
+     size, legal nature, or public/private status does not exempt the
+     authorization requirement;
+   - Adapting the system to work with other data sources, platforms, or
+     institutional infrastructure, even if the resulting code is substantially
+     modified;
+   - Providing data analysis services using this code, in whole or in part;
+   - Developing derivative products, platforms, or solutions for profit or
+     internal institutional use;
+   - Licensing or sublicensing to third parties.
+
+3. MANDATORY ATTRIBUTION
+
+   Any use permitted under this license — including modifications and
+   distributions — must visibly maintain:
+   - The original author's name: Rodolfo Zalzwedel Espínola
+   - A reference to the original repository
+   - This license in its entirety
+
+   Removing, concealing, or replacing the original authorship, even in modified
+   versions, is expressly prohibited.
+
+4. DEMONSTRATIONS AND EVALUATION ACCESS
+
+   Access to the code or system demonstrations for institutional evaluation
+   purposes — including presentations, screenshots, copies for internal review,
+   or proof-of-concept assessments — does not constitute authorization for use.
+   Any intent to deploy the system following evaluation requires formal
+   negotiation with the author prior to the start of any derivative development.
+
+5. DATA
+
+   This license applies exclusively to the source code. The broadcast data used
+   in the original production is not included in this repository and remains
+   subject to the terms of use of the originating platform.
+
+6. DISCLAIMER OF WARRANTIES
+
+   This software is provided "as is", without warranty of any kind, express or
+   implied. The author shall not be liable for any damages arising from the use
+   of this software.
+
+7. GOVERNING LAW
+
+   For users based in Brazil: this license is governed by Brazilian law
+   (Lei nº 9.610/1998 — Lei de Direitos Autorais).
+
+   For users based in the European Union (including Luxembourg): this license
+   is intended to be consistent with Directive 2009/24/EC on the legal
+   protection of computer programs and Directive 2001/29/EC on copyright in
+   the information society. Institutional and commercial use restrictions apply
+   across all EU member states.
+
+   For users in other jurisdictions: the institutional and commercial use
+   restriction applies globally. If local law conflicts with any provision of
+   this license, the more restrictive interpretation shall apply.
+
+8. CONTACT FOR INSTITUTIONAL OR COMMERCIAL USE
+
+   To request authorization for institutional deployment, discuss adaptations,
+   or negotiate service contracts, please contact: [your email or LinkedIn here]
