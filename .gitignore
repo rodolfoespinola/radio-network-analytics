@@ -10,6 +10,7 @@ __pycache__/
 
 # Dados de entrada — arquivos reais não incluídos no repositório
 data/*.xlsx
+data/*.csv
 
 # Outputs gerados pelo script (recriados ao executar)
 outputs/
