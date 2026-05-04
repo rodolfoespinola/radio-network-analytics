@@ -1,155 +1,148 @@
-# Rádio ALESC — Sistema de Análise de Distribuição e Cobertura
+# radio-network-analytics
 
-Sistema de análise de dados para emissoras de rádio parceiras de instituições públicas, com foco em cobertura territorial, mix de programação e dinâmica de rede.
+Territorial coverage, content mix, and partner retention analytics for public radio broadcast networks.
 
-Desenvolvido para a [Rádio ALESC](https://www.alesc.sc.gov.br/radio), veículo de comunicação da Assembleia Legislativa de Santa Catarina.
-
----
-
-## O que este sistema faz
-
-A partir de dados de veiculação exportados por plataformas de gerenciamento de broadcast, o sistema produz automaticamente:
-
-**Análise territorial**
-
-- Mapa coroplético de SC com cobertura por município
-- Cobertura populacional cruzada com dados do IBGE
-- Índice de Gini territorial (concentração vs. distribuição)
-- Identificação de lacunas estratégicas (municípios populosos sem cobertura)
-- Índice de intensidade de veiculação por habitante
-
-**Análise da rede de emissoras**
-
-- Ranking das rádios mais ativas por período
-- Taxa de fidelidade e retenção de parceiros
-- Movimentação anual: novas emissoras, saídas, retornos
-- Análise de churn da rede (comparativo ano a ano)
-
-**Mix de programação**
-
-- Distribuição de tipos de conteúdo por ano
-- Evolução temporal do mix editorial
-- Categorias: Comissão, Plenário, Audiência Pública, Ordem do Dia, Institucional, entre outras
-
-**Outputs gerados**
-
-- 17 visualizações (PNG)
-- 15+ tabelas (CSV/XLSX)
-- 1 relatório analítico completo com frases prontas para apresentação (TXT)
+Built for [Rádio ALESC](https://www.alesc.sc.gov.br/radio), the radio station of the Santa Catarina State Legislative Assembly, Brazil.
 
 ---
 
-## Escala atual de uso
+## What this system does
 
-| Indicador             | Valor                  |
-| --------------------- | ---------------------- |
-| Registros analisados  | 22.886+                |
-| Emissoras monitoradas | 274 (histórico total)  |
-| Municípios alcançados | até 290 de 295 em SC   |
-| Período               | 2023–2026              |
+Starting from broadcast distribution data exported by media management platforms, the system automatically produces:
+
+**Territorial analysis**
+
+- Choropleth map of Santa Catarina with per-municipality coverage
+- Population reach cross-referenced with IBGE census data
+- Territorial Gini index (concentration vs. distribution)
+- Strategic gap identification (high-population municipalities with no coverage)
+- Broadcast intensity index per capita
+
+**Network analysis**
+
+- Ranking of most active stations by period
+- Partner fidelity and retention rate
+- Annual movement: new stations, departures, and returns
+- Year-over-year churn analysis
+
+**Content mix**
+
+- Distribution of content types by year
+- Editorial mix evolution over time
+- Categories: Committee, Plenary, Public Hearing, Session, Institutional, and others
+
+**Generated outputs**
+
+- 17 charts (PNG)
+- 15+ tables (CSV/XLSX)
+- 1 full analytical report with ready-to-present phrases (TXT)
 
 ---
 
-## Tecnologias
+## Scale
+
+| Indicator             | Value                       |
+| --------------------- | --------------------------- |
+| Records analyzed      | 22,886+                     |
+| Partner stations      | 274 (total historical)      |
+| Municipalities reached| up to 290 of 295 in SC      |
+| Period                | 2023–2026                   |
+
+---
+
+## Stack
 
 - Python 3.10+
 - pandas, matplotlib, seaborn, plotly
-- geopandas (mapa coroplético — opcional)
-- openpyxl (leitura de arquivos .xlsx)
-- Integração com API do IBGE (cache local automático)
-- Execução local, sem dependência de servidores externos
+- geopandas (choropleth map — optional)
+- openpyxl (xlsx ingestion)
+- IBGE Census API with automatic local cache
+- Runs fully local, no external server required
 
 ---
 
-## Estrutura de arquivos
+## File structure
 
 ```
-analise_alesc.py              # script principal de análise
-auditoria.py                  # validação e auditoria dos dados de entrada
-mapa_comercial.py             # mapa interativo de abrangência por comercial
-mapa_interativo_intensidade.py # mapa interativo de intensidade de veiculação
+analise_alesc.py               # main analysis script
+auditoria.py                   # data validation and audit
+mapa_comercial.py              # interactive coverage map per broadcast
+mapa_interativo_intensidade.py # interactive broadcast intensity map
 data/
-  ├── cache/                  # cache automático da API do IBGE
-  └── [arquivos de entrada por mês/ano — não incluídos no repositório]
+  ├── cache/                   # automatic IBGE API cache
+  └── [monthly input files — not included in this repository]
 outputs/
-  ├── *.png                   # gráficos
-  ├── *.csv / *.xlsx          # tabelas
+  ├── *.png                    # charts
+  ├── *.csv / *.xlsx           # tables
   └── relatorio_analitico.txt
 ```
 
 ---
 
-## Como executar
+## How to run
 
 ```bash
-# Criar e ativar ambiente virtual
+# Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Instalar dependências
+# Install dependencies
 pip install pandas matplotlib seaborn plotly geopandas openpyxl requests
 
-# Colocar os arquivos de dados na pasta data/
-# Executar
+# Place input data files in data/
 python analise_alesc.py
 ```
 
-Os outputs são gerados automaticamente na pasta `outputs/`.
+Outputs are generated automatically in the `outputs/` folder.
 
 ---
 
-## Dados de entrada
+## Input data
 
-Os arquivos de dados reais não estão incluídos neste repositório por conterem informações operacionais da instituição.
-
-O sistema foi desenvolvido para dados exportados de plataforma de gerenciamento de broadcast. Para adaptar a outra fonte de dados, ajuste o bloco de ingestão no início do script (colunas `Radio`, `Cidade`, `Tipo`, `Data`, `Comercial`).
+Real broadcast data files are not included in this repository. The system was built for data exported from a broadcast management platform. To adapt it to a different data source, adjust the ingestion block at the top of the script (columns `Radio`, `Cidade`, `Tipo`, `Data`, `Comercial`).
 
 ---
 
-## Scripts utilitários
+## Utility scripts
 
-**`auditoria.py`** — valida os dados de entrada, detecta inconsistências e gera relatório de validação antes da análise principal.
+**`auditoria.py`** — validates input data, detects inconsistencies, and generates a validation report before the main analysis runs.
 
-**`mapa_comercial.py`** — gera mapa interativo de abrangência para um comercial específico, cruzando a rede de emissoras com os municípios cobertos por cada rádio.
+**`mapa_comercial.py`** — generates an interactive coverage map for a specific broadcast, crossing the station network with each radio's signal coverage municipalities.
 
-**`mapa_interativo_intensidade.py`** — gera mapa interativo de intensidade de veiculação por município, com camada de população e destaque para lacunas estratégicas.
-
----
-
-## Aplicabilidade
-
-Este sistema pode ser adaptado para qualquer instituição que distribua conteúdo via rede de emissoras parceiras, incluindo:
-
-- Assembleias legislativas estaduais
-- Câmaras municipais com programação em rádio
-- Agências de comunicação pública
-- Veículos com rede de afiliadas
+**`mapa_interativo_intensidade.py`** — generates an interactive broadcast intensity map by municipality, with a population layer and strategic gap highlighting.
 
 ---
 
-## Licença
+## Applicability
 
-**Uso não-comercial livre** — este código pode ser usado, estudado e adaptado para fins educacionais, acadêmicos e de portfólio sem restrições.
+This system can be adapted for any institution distributing content via a partner station network, including:
 
-**Uso comercial** (implantação em instituições, prestação de serviços, produtos derivados) requer autorização prévia do autor.
-
----
-
-## Autor
-
-Desenvolvido por **Rodolfo Zalzwedel Espínola**  
-Jornalista e produtor — Rádio ALESC / Assembleia Legislativa de Santa Catarina
+- State legislative assemblies
+- Municipal councils with radio programming
+- Public communication agencies
+- Media outlets with affiliate networks
 
 ---
 
-## English summary
+## License
 
-**Brazilian legislative radio network analysis system** — territorial coverage, content mix, and partner retention analytics for public broadcasters.
+**Free for non-commercial use** — this code may be used, studied, and adapted for educational, academic, and portfolio purposes without restrictions.
 
-This tool processes broadcast distribution data from radio networks affiliated with Brazilian legislative institutions. It produces territorial coverage maps, audience reach estimates (cross-referenced with IBGE census data), content mix analysis, and partner churn metrics — all as automated outputs from a single Python script.
+**Commercial use** (institutional deployment, service delivery, derivative products) requires prior authorization from the author.
 
-Built for [Rádio ALESC](https://www.alesc.sc.gov.br/radio), the radio station of the Santa Catarina State Legislative Assembly, Brazil.
+---
 
-**Scale:** 22,886+ broadcast records · 274 partner stations · up to 290 municipalities across Santa Catarina state · 2023–2026
+## Author
 
-For international inquiries or commercial licensing outside Brazil: rzespinola@gmail.com
+**Rodolfo Zalzwedel Espínola**  
+Journalist and producer — Rádio ALESC / Santa Catarina State Legislative Assembly, Brazil
+
+---
+
+## Versão em português
+
+Sistema de análise de dados para emissoras de rádio parceiras de instituições públicas, com foco em cobertura territorial, mix de programação e dinâmica de rede. Desenvolvido para a Rádio ALESC, veículo de comunicação da Assembleia Legislativa de Santa Catarina.
+
+Produz automaticamente mapas, tabelas e relatório analítico a partir de dados de veiculação exportados de plataformas de gestão de broadcast. Escala atual: 22.886+ registros, 274 emissoras monitoradas, até 290 municípios de SC, período 2023–2026.
+
+Para consultas comerciais: rzespinola@gmail.com
