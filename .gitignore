@@ -1,0 +1,21 @@
+# Ambiente virtual Python
+radio/
+venv/
+.venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Dados de entrada — arquivos reais não incluídos no repositório
+data/*.xlsx
+
+# Outputs gerados pelo script (recriados ao executar)
+outputs/
+
+# Temporários e IDEs
+.DS_Store
+*.log
+.vscode/
+.idea/

@@ -23,7 +23,7 @@ A partir de dados de veiculação exportados por plataformas de gerenciamento de
 - Ranking das rádios mais ativas por período
 - Taxa de fidelidade e retenção de parceiros
 - Movimentação anual: novas emissoras, saídas, retornos
-- Análise de churn da rede
+- Análise de churn da rede (comparativo ano a ano)
 
 **Mix de programação**
 
@@ -33,20 +33,20 @@ A partir de dados de veiculação exportados por plataformas de gerenciamento de
 
 **Outputs gerados**
 
-- 15 visualizações (PNG)
-- 12 tabelas (CSV)
+- 17 visualizações (PNG)
+- 15+ tabelas (CSV/XLSX)
 - 1 relatório analítico completo com frases prontas para apresentação (TXT)
 
 ---
 
 ## Escala atual de uso
 
-| Indicador             | Valor            |
-| --------------------- | ---------------- |
-| Registros analisados  | 21.952+          |
-| Emissoras monitoradas | 302              |
-| Municípios cobertos   | 116 de 295 em SC |
-| Período               | 2023–2026        |
+| Indicador             | Valor                  |
+| --------------------- | ---------------------- |
+| Registros analisados  | 22.886+                |
+| Emissoras monitoradas | 274 (histórico total)  |
+| Municípios alcançados | até 290 de 295 em SC   |
+| Período               | 2023–2026              |
 
 ---
 
@@ -54,6 +54,8 @@ A partir de dados de veiculação exportados por plataformas de gerenciamento de
 
 - Python 3.10+
 - pandas, matplotlib, seaborn, plotly
+- geopandas (mapa coroplético — opcional)
+- openpyxl (leitura de arquivos .xlsx)
 - Integração com API do IBGE (cache local automático)
 - Execução local, sem dependência de servidores externos
 
@@ -62,13 +64,16 @@ A partir de dados de veiculação exportados por plataformas de gerenciamento de
 ## Estrutura de arquivos
 
 ```
-analise_alesc_final.py   # script principal
+analise_alesc.py              # script principal de análise
+auditoria.py                  # validação e auditoria dos dados de entrada
+mapa_comercial.py             # mapa interativo de abrangência por comercial
+mapa_interativo_intensidade.py # mapa interativo de intensidade de veiculação
 data/
-  ├── cache/             # cache automático da API do IBGE
-  └── [arquivos de entrada por ano]
+  ├── cache/                  # cache automático da API do IBGE
+  └── [arquivos de entrada por mês/ano — não incluídos no repositório]
 outputs/
-  ├── *.png              # gráficos
-  ├── *.csv              # tabelas
+  ├── *.png                   # gráficos
+  ├── *.csv / *.xlsx          # tabelas
   └── relatorio_analitico.txt
 ```
 
@@ -77,12 +82,16 @@ outputs/
 ## Como executar
 
 ```bash
+# Criar e ativar ambiente virtual
+python3 -m venv venv
+source venv/bin/activate
+
 # Instalar dependências
-pip install pandas matplotlib seaborn plotly requests
+pip install pandas matplotlib seaborn plotly geopandas openpyxl requests
 
 # Colocar os arquivos de dados na pasta data/
 # Executar
-python analise_alesc_final.py
+python analise_alesc.py
 ```
 
 Os outputs são gerados automaticamente na pasta `outputs/`.
@@ -91,9 +100,19 @@ Os outputs são gerados automaticamente na pasta `outputs/`.
 
 ## Dados de entrada
 
-O sistema foi desenvolvido para dados exportados de plataforma de gerenciamento de broadcast. Os dados de exemplo incluídos neste repositório são **sintéticos**, gerados para fins de demonstração.
+Os arquivos de dados reais não estão incluídos neste repositório por conterem informações operacionais da instituição.
 
-Para adaptar o sistema a outra fonte de dados, é necessário ajustar o bloco de ingestão no início do script (colunas `Radio`, `Cidade`, `Tipo`, `Data`, `Comercial`).
+O sistema foi desenvolvido para dados exportados de plataforma de gerenciamento de broadcast. Para adaptar a outra fonte de dados, ajuste o bloco de ingestão no início do script (colunas `Radio`, `Cidade`, `Tipo`, `Data`, `Comercial`).
+
+---
+
+## Scripts utilitários
+
+**`auditoria.py`** — valida os dados de entrada, detecta inconsistências e gera relatório de validação antes da análise principal.
+
+**`mapa_comercial.py`** — gera mapa interativo de abrangência para um comercial específico, cruzando a rede de emissoras com os municípios cobertos por cada rádio.
+
+**`mapa_interativo_intensidade.py`** — gera mapa interativo de intensidade de veiculação por município, com camada de população e destaque para lacunas estratégicas.
 
 ---
 
@@ -114,15 +133,12 @@ Este sistema pode ser adaptado para qualquer instituição que distribua conteú
 
 **Uso comercial** (implantação em instituições, prestação de serviços, produtos derivados) requer autorização prévia do autor.
 
-Para consultas comerciais: [seu contato aqui]
-
 ---
 
 ## Autor
 
 Desenvolvido por **Rodolfo Zalzwedel Espínola**  
-Jornalista e produtor — Rádio ALESC / Assembleia Legislativa de Santa Catarina  
-[LinkedIn] · [contato]
+Jornalista e produtor — Rádio ALESC / Assembleia Legislativa de Santa Catarina
 
 ---
 
@@ -134,6 +150,6 @@ This tool processes broadcast distribution data from radio networks affiliated w
 
 Built for [Rádio ALESC](https://www.alesc.sc.gov.br/radio), the radio station of the Santa Catarina State Legislative Assembly, Brazil.
 
-**Scale:** 21,952+ broadcast records · 302 partner stations · 116 municipalities across Santa Catarina state · 2023–2026
+**Scale:** 22,886+ broadcast records · 274 partner stations · up to 290 municipalities across Santa Catarina state · 2023–2026
 
-For international inquiries or commercial licensing outside Brazil: [your contact here]
+For international inquiries or commercial licensing outside Brazil: rzespinola@gmail.com
