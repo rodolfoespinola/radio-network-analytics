@@ -377,7 +377,7 @@ Zortéa,-27.4722,-51.5531,4100
 df_cent = pd.read_csv(StringIO(CENTROIDES_POP_CSV))
 df_cent["Cidade_norm"] = df_cent["municipio"].apply(normalizar)
 
-mapa_sede = df.groupby("Radio_norm")["Cidade_norm"].first().to_dict()
+mapa_sede = df.groupby("Radio_norm")["Cidade_norm"].agg(lambda x: x.mode()[0]).to_dict()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SELEÇÃO DO COMERCIAL
@@ -430,44 +430,53 @@ subset = df[df["Comercial"] == conteudo]
 radios_do_conteudo = subset["Radio_norm"].dropna().unique()
 cids_diretas = set(subset["Cidade_norm"].dropna().unique()) - {""}
 
-municipios_total = set()
-rádios_com_abr = 0
-rádios_sem_abr = 0
+municipios_total       = set()
+cids_abrangencia_verif = set()
+cids_sede_inferida     = set()
 
 for rn in radios_do_conteudo:
     if rn in mapa_abrangencia:
         municipios_total.update(mapa_abrangencia[rn])
-        rádios_com_abr += 1
+        cids_abrangencia_verif.update(mapa_abrangencia[rn])
     else:
         sede = mapa_sede.get(rn, "")
         if sede:
             municipios_total.add(sede)
-        rádios_sem_abr += 1
+            cids_sede_inferida.add(sede)
 
 municipios_total.update(cids_diretas)
 municipios_total -= {""}
 
-# Tipo de cobertura por município
 def tipo_cobertura(cn):
     if cn in cids_diretas:
         return "Veiculação direta"
-    return "Só pelo sinal"
+    if cn in cids_abrangencia_verif:
+        return "Só pelo sinal"
+    return "Sede estimada"
 
 # Monta dataframe do mapa
 linhas_mapa = []
+sem_coords  = []
 for cn in municipios_total:
     linha_cent = df_cent[df_cent["Cidade_norm"] == cn]
     if linha_cent.empty:
+        sem_coords.append(cn)
         continue
     r = linha_cent.iloc[0]
+    # Usa população do dataset (Censo 2022 via analise_alesc); fallback para hardcode
+    pop_ds = df_pop.loc[df_pop["Cidade_norm"] == cn, "Populacao"]
+    pop = int(pop_ds.iloc[0]) if not pop_ds.empty else int(r["pop"])
     linhas_mapa.append({
         "Cidade_norm":    cn,
         "municipio":      r["municipio"],
         "lat":            r["lat"],
         "lon":            r["lon"],
-        "pop":            int(r["pop"]),
+        "pop":            pop,
         "Tipo_Cobertura": tipo_cobertura(cn),
     })
+if sem_coords:
+    print(f"  ⚠ {len(sem_coords)} município(s) sem coordenadas (excluídos do mapa): "
+          f"{', '.join(sem_coords[:5])}{'...' if len(sem_coords) > 5 else ''}")
 
 if not linhas_mapa:
     print("Nenhum município com coordenadas encontrado.")
@@ -483,6 +492,7 @@ pop_total     = mapa_df["pop"].sum()
 n_municipios  = len(mapa_df)
 n_diretos     = (mapa_df["Tipo_Cobertura"] == "Veiculação direta").sum()
 n_sinal       = (mapa_df["Tipo_Cobertura"] == "Só pelo sinal").sum()
+n_estimada    = (mapa_df["Tipo_Cobertura"] == "Sede estimada").sum()
 pct_sc        = pop_total / POP_SC_TOTAL * 100
 n_emissoras   = len(radios_do_conteudo)
 
@@ -494,6 +504,7 @@ print(f"  {n_municipios} municípios | {pop_total:,.0f} hab. ({pct_sc:.1f}% de S
 cores = {
     "Veiculação direta": "#27ae60",
     "Só pelo sinal":     "#2980b9",
+    "Sede estimada":     "#e67e22",
 }
 mapa_df["Cor"] = mapa_df["Tipo_Cobertura"].map(cores)
 
@@ -522,7 +533,7 @@ fig = px.scatter_mapbox(
         "Pop_fmt":        "População",
         "Aud_fmt":        "Audiência potencial",
     },
-    category_orders={"Tipo_Cobertura": ["Veiculação direta", "Só pelo sinal"]},
+    category_orders={"Tipo_Cobertura": ["Veiculação direta", "Só pelo sinal", "Sede estimada"]},
 )
 
 # Nome curto para título (máx 60 chars)
@@ -537,7 +548,8 @@ fig.update_layout(
             f"<b>Abrangência: {titulo_curto}</b><br>"
             f"<sup>{n_municipios} municípios  ·  "
             f"{n_diretos} veiculação direta  ·  "
-            f"{n_sinal} só pelo sinal  ·  "
+            f"{n_sinal} pelo sinal  ·  "
+            f"{n_estimada} sede estimada  ·  "
             f"Pop. alcançada: {pop_total/1e6:.2f}M hab. ({pct_sc:.1f}% de SC)  ·  "
             f"{n_emissoras} emissoras  ·  "
             f"Tamanho = população</sup>"
@@ -554,8 +566,9 @@ fig.update_layout(
     ),
     annotations=[dict(
         text=(
-            "🟢 Veiculação direta = município sede registrado no sistema  ·  "
-            "🔵 Só pelo sinal = coberto pela abrangência da rádio  ·  "
+            "🟢 Veiculação direta = broadcast registrado no sistema  ·  "
+            "🔵 Só pelo sinal = cobertura verificada por abrangência  ·  "
+            "🟠 Sede estimada = rádio sem mapeamento de sinal (apenas sede)  ·  "
             "Tamanho da bolha = população"
         ),
         xref="paper", yref="paper",
