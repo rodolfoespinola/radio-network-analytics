@@ -380,226 +380,187 @@ df_cent["Cidade_norm"] = df_cent["municipio"].apply(normalizar)
 mapa_sede = df.groupby("Radio_norm")["Cidade_norm"].agg(lambda x: x.mode()[0]).to_dict()
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SELEÇÃO DO COMERCIAL
+# FUNÇÃO DE GERAÇÃO DE MAPA (usada aqui e por gerar_mapas_mes.py)
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n" + "="*70)
-print("MAPA DE ABRANGÊNCIA POR COMERCIAL — Rádio Alesc")
-print("="*70)
+def gerar_mapa(conteudo, sufixo="", n_veic_mes=None, abrir_navegador=True):
+    """Gera mapa interativo de abrangência para um comercial.
 
-busca = input("\nDigite parte do nome do comercial: ").strip()
-if not busca:
-    print("Nenhum termo digitado. Encerrando.")
-    raise SystemExit
+    conteudo       : nome exato do comercial (campo Comercial do dataset)
+    sufixo         : prefixo opcional no nome do arquivo (ex: "TOP1_ABR2026_")
+    n_veic_mes     : nº de veiculações no mês (exibido no título se fornecido)
+    abrir_navegador: se True, abre o HTML no browser ao final
+    Retorna o caminho do arquivo gerado.
+    """
+    print(f"\nCalculando abrangência de: {conteudo}")
 
-# Busca parcial, sem sensibilidade a maiúsculas/acentos
-busca_norm = normalizar(busca)
-comerciais_disponiveis = df["Comercial"].dropna().unique()
+    subset = df[df["Comercial"] == conteudo]
+    radios_do_conteudo = subset["Radio_norm"].dropna().unique()
+    cids_diretas = set(subset["Cidade_norm"].dropna().unique()) - {""}
 
-def score(nome):
-    return normalizar(nome).__contains__(busca_norm)
+    municipios_total       = set()
+    cids_abrangencia_verif = set()
 
-encontrados = [c for c in comerciais_disponiveis if score(c)]
+    for rn in radios_do_conteudo:
+        if rn in mapa_abrangencia:
+            municipios_total.update(mapa_abrangencia[rn])
+            cids_abrangencia_verif.update(mapa_abrangencia[rn])
+        else:
+            sede = mapa_sede.get(rn, "")
+            if sede:
+                municipios_total.add(sede)
 
-if not encontrados:
-    print(f"\nNenhum comercial encontrado com '{busca}'.")
-    raise SystemExit
+    municipios_total.update(cids_diretas)
+    municipios_total -= {""}
 
-if len(encontrados) == 1:
-    conteudo = encontrados[0]
-    print(f"\nEncontrado: {conteudo}")
-else:
-    print(f"\n{len(encontrados)} comerciais encontrados:")
-    for i, nome in enumerate(sorted(encontrados)[:50], 1):
-        n_veic = (df["Comercial"] == nome).sum()
-        print(f"  [{i:2d}] {nome}  ({n_veic} veiculações)")
-    if len(encontrados) > 50:
-        print(f"  ... e mais {len(encontrados)-50} resultados. Refine a busca.")
-    escolha = input("\nDigite o número: ").strip()
-    try:
-        conteudo = sorted(encontrados)[int(escolha) - 1]
-    except (ValueError, IndexError):
-        print("Escolha inválida.")
+    def tipo_cobertura(cn):
+        if cn in cids_diretas:
+            return "Veiculação direta"
+        if cn in cids_abrangencia_verif:
+            return "Só pelo sinal"
+        return "Sede estimada"
+
+    linhas_mapa = []
+    sem_coords  = []
+    for cn in municipios_total:
+        linha_cent = df_cent[df_cent["Cidade_norm"] == cn]
+        if linha_cent.empty:
+            sem_coords.append(cn)
+            continue
+        r = linha_cent.iloc[0]
+        pop_ds = df_pop.loc[df_pop["Cidade_norm"] == cn, "Populacao"]
+        pop = int(pop_ds.iloc[0]) if not pop_ds.empty else int(r["pop"])
+        linhas_mapa.append({
+            "Cidade_norm":    cn,
+            "municipio":      r["municipio"],
+            "lat":            r["lat"],
+            "lon":            r["lon"],
+            "pop":            pop,
+            "Tipo_Cobertura": tipo_cobertura(cn),
+        })
+    if sem_coords:
+        print(f"  ⚠ {len(sem_coords)} município(s) sem coordenadas (excluídos): "
+              f"{', '.join(sem_coords[:5])}{'...' if len(sem_coords) > 5 else ''}")
+
+    if not linhas_mapa:
+        print("  ⚠ Nenhum município com coordenadas encontrado. Mapa não gerado.")
+        return None
+
+    mapa_df = pd.DataFrame(linhas_mapa)
+    mapa_df["Audiencia"] = (mapa_df["pop"] * TAXA_ESCUTA).astype(int)
+    mapa_df["Pop_fmt"]   = mapa_df["pop"].apply(lambda x: f"{x:,}".replace(",", "."))
+    mapa_df["Aud_fmt"]   = mapa_df["Audiencia"].apply(lambda x: f"{x:,}".replace(",", "."))
+
+    pop_total    = mapa_df["pop"].sum()
+    n_municipios = len(mapa_df)
+    n_diretos    = (mapa_df["Tipo_Cobertura"] == "Veiculação direta").sum()
+    n_sinal      = (mapa_df["Tipo_Cobertura"] == "Só pelo sinal").sum()
+    n_estimada   = (mapa_df["Tipo_Cobertura"] == "Sede estimada").sum()
+    pct_sc       = pop_total / POP_SC_TOTAL * 100
+    n_emissoras  = len(radios_do_conteudo)
+
+    print(f"  {n_municipios} municípios | {pop_total:,.0f} hab. ({pct_sc:.1f}% SC) | {n_emissoras} emissoras")
+
+    cores = {
+        "Veiculação direta": "#27ae60",
+        "Só pelo sinal":     "#2980b9",
+        "Sede estimada":     "#e67e22",
+    }
+    titulo_curto  = conteudo if len(conteudo) <= 60 else conteudo[:57] + "..."
+    veic_info     = f"  ·  {n_veic_mes} veiculações no mês" if n_veic_mes else ""
+
+    fig = px.scatter_mapbox(
+        mapa_df, lat="lat", lon="lon", size="pop",
+        color="Tipo_Cobertura", color_discrete_map=cores,
+        hover_name="municipio",
+        hover_data={"lat": False, "lon": False, "pop": False,
+                    "Tipo_Cobertura": True, "Pop_fmt": True, "Aud_fmt": True},
+        size_max=50, zoom=6.8,
+        center={"lat": -27.5, "lon": -50.5},
+        mapbox_style="carto-positron",
+        labels={"Tipo_Cobertura": "Tipo de cobertura",
+                "Pop_fmt": "População", "Aud_fmt": "Audiência potencial"},
+        category_orders={"Tipo_Cobertura": ["Veiculação direta", "Só pelo sinal", "Sede estimada"]},
+    )
+    fig.update_layout(
+        margin={"r": 0, "t": 80, "l": 0, "b": 0},
+        paper_bgcolor="#f8f9fa",
+        font=dict(family="Arial, sans-serif", size=13),
+        title=dict(
+            text=(
+                f"<b>Abrangência: {titulo_curto}</b><br>"
+                f"<sup>{n_municipios} municípios  ·  "
+                f"{n_diretos} veiculação direta  ·  "
+                f"{n_sinal} pelo sinal  ·  "
+                f"{n_estimada} sede estimada  ·  "
+                f"Pop. alcançada: {pop_total/1e6:.2f}M hab. ({pct_sc:.1f}% de SC)  ·  "
+                f"{n_emissoras} emissoras{veic_info}  ·  "
+                f"Tamanho = população</sup>"
+            ),
+            x=0.5, xanchor="center", font=dict(size=14),
+        ),
+        legend=dict(title="Tipo de cobertura", x=0.01, y=0.99,
+                    bgcolor="rgba(255,255,255,0.85)", bordercolor="#ccc", borderwidth=1),
+        annotations=[dict(
+            text=("🟢 Veiculação direta = broadcast registrado no sistema  ·  "
+                  "🔵 Só pelo sinal = cobertura verificada por abrangência  ·  "
+                  "🟠 Sede estimada = rádio sem mapeamento de sinal (apenas sede)  ·  "
+                  "Tamanho da bolha = população"),
+            xref="paper", yref="paper", x=0.5, y=-0.02,
+            xanchor="center", yanchor="top", showarrow=False,
+            font=dict(size=9, color="#555"),
+        )],
+    )
+
+    nome_arquivo = re.sub(r"[^\w\-]", "_", conteudo)[:60]
+    caminho = OUTPUT_DIR / f"mapa_comercial_{sufixo}{nome_arquivo}.html"
+    fig.write_html(str(caminho), include_plotlyjs="cdn", full_html=True,
+                   config={"scrollZoom": True, "displayModeBar": True,
+                           "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+                           "toImageButtonOptions": {"format": "png",
+                               "filename": f"abrangencia_{sufixo}{nome_arquivo}",
+                               "width": 1400, "height": 900}})
+    print(f"  ✓ Mapa salvo: {caminho}")
+    if abrir_navegador:
+        webbrowser.open(caminho.resolve().as_uri())
+    return caminho
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MODO INTERATIVO (uso direto: python mapa_comercial.py)
+# ══════════════════════════════════════════════════════════════════════════════
+if __name__ == "__main__":
+    print("\n" + "="*70)
+    print("MAPA DE ABRANGÊNCIA POR COMERCIAL — Rádio Alesc")
+    print("="*70)
+
+    busca = input("\nDigite parte do nome do comercial: ").strip()
+    if not busca:
+        print("Nenhum termo digitado. Encerrando.")
         raise SystemExit
 
-# ══════════════════════════════════════════════════════════════════════════════
-# CALCULA ABRANGÊNCIA
-# ══════════════════════════════════════════════════════════════════════════════
-print(f"\nCalculando abrangência de: {conteudo}")
+    busca_norm = normalizar(busca)
+    comerciais_disponiveis = df["Comercial"].dropna().unique()
+    encontrados = [c for c in comerciais_disponiveis if normalizar(c).__contains__(busca_norm)]
 
-subset = df[df["Comercial"] == conteudo]
-radios_do_conteudo = subset["Radio_norm"].dropna().unique()
-cids_diretas = set(subset["Cidade_norm"].dropna().unique()) - {""}
+    if not encontrados:
+        print(f"\nNenhum comercial encontrado com '{busca}'.")
+        raise SystemExit
 
-municipios_total       = set()
-cids_abrangencia_verif = set()
-cids_sede_inferida     = set()
-
-for rn in radios_do_conteudo:
-    if rn in mapa_abrangencia:
-        municipios_total.update(mapa_abrangencia[rn])
-        cids_abrangencia_verif.update(mapa_abrangencia[rn])
+    if len(encontrados) == 1:
+        conteudo = encontrados[0]
+        print(f"\nEncontrado: {conteudo}")
     else:
-        sede = mapa_sede.get(rn, "")
-        if sede:
-            municipios_total.add(sede)
-            cids_sede_inferida.add(sede)
+        print(f"\n{len(encontrados)} comerciais encontrados:")
+        for i, nome in enumerate(sorted(encontrados)[:50], 1):
+            n_veic = (df["Comercial"] == nome).sum()
+            print(f"  [{i:2d}] {nome}  ({n_veic} veiculações)")
+        if len(encontrados) > 50:
+            print(f"  ... e mais {len(encontrados)-50} resultados. Refine a busca.")
+        escolha = input("\nDigite o número: ").strip()
+        try:
+            conteudo = sorted(encontrados)[int(escolha) - 1]
+        except (ValueError, IndexError):
+            print("Escolha inválida.")
+            raise SystemExit
 
-municipios_total.update(cids_diretas)
-municipios_total -= {""}
-
-def tipo_cobertura(cn):
-    if cn in cids_diretas:
-        return "Veiculação direta"
-    if cn in cids_abrangencia_verif:
-        return "Só pelo sinal"
-    return "Sede estimada"
-
-# Monta dataframe do mapa
-linhas_mapa = []
-sem_coords  = []
-for cn in municipios_total:
-    linha_cent = df_cent[df_cent["Cidade_norm"] == cn]
-    if linha_cent.empty:
-        sem_coords.append(cn)
-        continue
-    r = linha_cent.iloc[0]
-    # Usa população do dataset (Censo 2022 via analise_alesc); fallback para hardcode
-    pop_ds = df_pop.loc[df_pop["Cidade_norm"] == cn, "Populacao"]
-    pop = int(pop_ds.iloc[0]) if not pop_ds.empty else int(r["pop"])
-    linhas_mapa.append({
-        "Cidade_norm":    cn,
-        "municipio":      r["municipio"],
-        "lat":            r["lat"],
-        "lon":            r["lon"],
-        "pop":            pop,
-        "Tipo_Cobertura": tipo_cobertura(cn),
-    })
-if sem_coords:
-    print(f"  ⚠ {len(sem_coords)} município(s) sem coordenadas (excluídos do mapa): "
-          f"{', '.join(sem_coords[:5])}{'...' if len(sem_coords) > 5 else ''}")
-
-if not linhas_mapa:
-    print("Nenhum município com coordenadas encontrado.")
-    raise SystemExit
-
-mapa_df = pd.DataFrame(linhas_mapa)
-mapa_df["Audiencia"]   = (mapa_df["pop"] * TAXA_ESCUTA).astype(int)
-mapa_df["Pop_fmt"]     = mapa_df["pop"].apply(lambda x: f"{x:,}".replace(",","."))
-mapa_df["Aud_fmt"]     = mapa_df["Audiencia"].apply(lambda x: f"{x:,}".replace(",","."))
-
-# Estatísticas resumo
-pop_total     = mapa_df["pop"].sum()
-n_municipios  = len(mapa_df)
-n_diretos     = (mapa_df["Tipo_Cobertura"] == "Veiculação direta").sum()
-n_sinal       = (mapa_df["Tipo_Cobertura"] == "Só pelo sinal").sum()
-n_estimada    = (mapa_df["Tipo_Cobertura"] == "Sede estimada").sum()
-pct_sc        = pop_total / POP_SC_TOTAL * 100
-n_emissoras   = len(radios_do_conteudo)
-
-print(f"  {n_municipios} municípios | {pop_total:,.0f} hab. ({pct_sc:.1f}% de SC) | {n_emissoras} emissoras")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# GERA MAPA
-# ══════════════════════════════════════════════════════════════════════════════
-cores = {
-    "Veiculação direta": "#27ae60",
-    "Só pelo sinal":     "#2980b9",
-    "Sede estimada":     "#e67e22",
-}
-mapa_df["Cor"] = mapa_df["Tipo_Cobertura"].map(cores)
-
-fig = px.scatter_mapbox(
-    mapa_df,
-    lat="lat",
-    lon="lon",
-    size="pop",
-    color="Tipo_Cobertura",
-    color_discrete_map=cores,
-    hover_name="municipio",
-    hover_data={
-        "lat":            False,
-        "lon":            False,
-        "pop":            False,
-        "Tipo_Cobertura": True,
-        "Pop_fmt":        True,
-        "Aud_fmt":        True,
-    },
-    size_max=50,
-    zoom=6.8,
-    center={"lat": -27.5, "lon": -50.5},
-    mapbox_style="carto-positron",
-    labels={
-        "Tipo_Cobertura": "Tipo de cobertura",
-        "Pop_fmt":        "População",
-        "Aud_fmt":        "Audiência potencial",
-    },
-    category_orders={"Tipo_Cobertura": ["Veiculação direta", "Só pelo sinal", "Sede estimada"]},
-)
-
-# Nome curto para título (máx 60 chars)
-titulo_curto = conteudo if len(conteudo) <= 60 else conteudo[:57] + "..."
-
-fig.update_layout(
-    margin={"r": 0, "t": 80, "l": 0, "b": 0},
-    paper_bgcolor="#f8f9fa",
-    font=dict(family="Arial, sans-serif", size=13),
-    title=dict(
-        text=(
-            f"<b>Abrangência: {titulo_curto}</b><br>"
-            f"<sup>{n_municipios} municípios  ·  "
-            f"{n_diretos} veiculação direta  ·  "
-            f"{n_sinal} pelo sinal  ·  "
-            f"{n_estimada} sede estimada  ·  "
-            f"Pop. alcançada: {pop_total/1e6:.2f}M hab. ({pct_sc:.1f}% de SC)  ·  "
-            f"{n_emissoras} emissoras  ·  "
-            f"Tamanho = população</sup>"
-        ),
-        x=0.5, xanchor="center",
-        font=dict(size=14),
-    ),
-    legend=dict(
-        title="Tipo de cobertura",
-        x=0.01, y=0.99,
-        bgcolor="rgba(255,255,255,0.85)",
-        bordercolor="#ccc",
-        borderwidth=1,
-    ),
-    annotations=[dict(
-        text=(
-            "🟢 Veiculação direta = broadcast registrado no sistema  ·  "
-            "🔵 Só pelo sinal = cobertura verificada por abrangência  ·  "
-            "🟠 Sede estimada = rádio sem mapeamento de sinal (apenas sede)  ·  "
-            "Tamanho da bolha = população"
-        ),
-        xref="paper", yref="paper",
-        x=0.5, y=-0.02,
-        xanchor="center", yanchor="top",
-        showarrow=False,
-        font=dict(size=9, color="#555"),
-    )],
-)
-
-# ── Salva e abre ──────────────────────────────────────────────────────────────
-nome_arquivo = re.sub(r"[^\w\-]", "_", conteudo)[:60]
-caminho = OUTPUT_DIR / f"mapa_comercial_{nome_arquivo}.html"
-
-fig.write_html(
-    str(caminho),
-    include_plotlyjs="cdn",
-    full_html=True,
-    config={
-        "scrollZoom": True,
-        "displayModeBar": True,
-        "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-        "toImageButtonOptions": {
-            "format":   "png",
-            "filename": f"abrangencia_{nome_arquivo}",
-            "width":    1400,
-            "height":   900,
-        },
-    },
-)
-
-print(f"\n  ✓ Mapa salvo: {caminho}")
-print(f"  Abrindo no navegador...")
-webbrowser.open(caminho.resolve().as_uri())
+    gerar_mapa(conteudo)
