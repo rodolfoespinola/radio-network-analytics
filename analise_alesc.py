@@ -1021,18 +1021,18 @@ try:
         dados = json.loads(cache_path.read_text(encoding="utf-8"))
         print(f"  ✓ Usando cache: {cache_path.name}")
     else:
-        url = ("https://servicodados.ibge.gov.br/api/v3/agregados/6579"
-               "/periodos/2021/variaveis/9324?localidades=N6[in N3[42]]")
+        url = ("https://servicodados.ibge.gov.br/api/v3/agregados/4714"
+               "/periodos/2022/variaveis/all?localidades=N6[in N3[42]]")
         r = requests.get(url, timeout=15)
         r.raise_for_status()
         dados = r.json()
-        cache_path.write_text(json.dumps(dados), encoding="utf-8")
-        print("  ✓ População IBGE: carregada via API")
+        cache_path.write_text(json.dumps([dados[0]]), encoding="utf-8")
+        print("  ✓ População IBGE: carregada via API (Censo 2022)")
 
     registros = []
     for item in dados[0]["resultados"][0]["series"]:
         nome = item["localidade"]["nome"].replace(" - SC", "").strip()
-        pop  = item["serie"].get("2021")
+        pop  = item["serie"].get("2022")
         if pop:
             registros.append({"Municipio_IBGE": nome, "Populacao": int(pop)})
 
