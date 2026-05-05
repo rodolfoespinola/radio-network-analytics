@@ -983,6 +983,11 @@ df = df.dropna(subset=["Cidade_UF"])
 
 anos = sorted(df["Ano"].unique())
 anos_validos = sorted([a for a in anos if a >= 2020])
+# Último ano com dados completos (12 meses). Usado para excluir anos parciais de métricas de taxa.
+ultimo_ano_completo = max(
+    (a for a in anos_validos if df[df["Ano"] == a]["Mes"].nunique() == 12),
+    default=anos_validos[-1]
+)
 
 print(f"  ✓ {len(df):,} registros | {df['Radio'].nunique()} rádios | "
       f"{df['Cidade'].nunique()} cidades | {anos_validos}")
@@ -1326,8 +1331,26 @@ fidelidade = (
          Primeiro_Ano=("Ano","min"), Ultimo_Ano=("Ano","max"))
     .reset_index()
 )
-fidelidade["Anos_Possiveis"]  = fidelidade["Ultimo_Ano"] - fidelidade["Primeiro_Ano"] + 1
-fidelidade["Taxa_Fidelidade"] = fidelidade["Anos_Ativo"] / fidelidade["Anos_Possiveis"] * 100
+# Taxa_Fidelidade calculada apenas sobre anos completos para evitar distorção do ano parcial.
+# Rádios ativas só no ano parcial ficam com Taxa_Fidelidade = NaN (dados insuficientes).
+radio_ano_completo = radio_ano[radio_ano["Ano"] <= ultimo_ano_completo]
+fid_completo = (
+    radio_ano_completo.groupby("Radio_norm")
+    .agg(Anos_Ativo_Completo=("Ano","nunique"),
+         Primeiro_Ano_Completo=("Ano","min"),
+         Ultimo_Ano_Completo=("Ano","max"))
+    .reset_index()
+)
+fid_completo["Anos_Possiveis"] = (
+    fid_completo["Ultimo_Ano_Completo"] - fid_completo["Primeiro_Ano_Completo"] + 1
+)
+fid_completo["Taxa_Fidelidade"] = (
+    fid_completo["Anos_Ativo_Completo"] / fid_completo["Anos_Possiveis"] * 100
+).round(1)
+fidelidade = fidelidade.merge(
+    fid_completo[["Radio_norm","Taxa_Fidelidade"]], on="Radio_norm", how="left"
+)
+fidelidade["Anos_Possiveis"] = fidelidade["Ultimo_Ano"] - fidelidade["Primeiro_Ano"] + 1
 # 1. Nome canônico de exibição — precisa vir ANTES de Cidade
 fidelidade["Radio"]  = fidelidade["Radio_norm"].map(mapa_display).fillna(fidelidade["Radio_norm"])
 
@@ -1345,9 +1368,9 @@ impacto_radio = (
     .groupby("Radio_norm")
     .agg(
         Veiculacoes         = ("Veiculacoes_Cidade",  "sum"),
-        Impacto_Sede        = ("Pop_Sede",            "sum"),   # método antigo
-        Impacto_Abrangencia = ("Pop_Abrangencia",     "max"), # método novo (mesma para todas as linhas da rádio)
-        Cidades_Veiculadas  = ("Cidade",              "count"),
+        Impacto_Sede        = ("Pop_Sede",            "sum"),
+        Impacto_Abrangencia = ("Pop_Abrangencia",     "max"),
+        Cidades_Veiculadas  = ("Cidade",              "nunique"),
     )
     .reset_index()
     .sort_values("Impacto_Abrangencia", ascending=False)
@@ -1366,7 +1389,7 @@ ciclo_tipo = (
 )
 ciclo_comercial = (
     df_ciclo.groupby("Comercial")["Dias_Ate_Veiculacao"]
-    .agg(Primeira_veiculacao="min", Ultima_veiculacao="max", Total_veiculacoes="count",
+    .agg(Dias_min_ate_veiculacao="min", Dias_max_ate_veiculacao="max", Total_veiculacoes="count",
          Vida_util_dias=lambda x: x.max() - x.min())
     .sort_values("Vida_util_dias", ascending=False).reset_index()
 )
@@ -2633,12 +2656,20 @@ df_radios_movimento.to_csv(OUTPUT_DIR / "relatorio_radios_movimento.csv",
 print("  ✓ relatorio_radios_movimento.csv")
 
 # Relatório 3: população coberta por ano
+# Metodologia: veiculação direta + abrangência de sinal (mesma base de cobertura_por_ano.csv)
 linhas_pop = []
 for ano in anos_validos:
-    cids_ano    = set(df[df["Ano"]==ano]["Cidade_norm"].dropna().unique())
-    n_cids      = len([c for c in cids_ano if c])
-    pop_coberta = df_pop[df_pop["Cidade_norm"].isin(cids_ano)]["Populacao"].sum() if df_pop is not None else n_cids * 12_000
-    pct_sc      = pop_coberta / POP_SC_TOTAL * 100
+    df_ano        = df[df["Ano"] == ano]
+    rads_ano      = set(df_ano["Radio_norm"].dropna().unique())
+    cids_diretas  = set(df_ano["Cidade_norm"].dropna().unique())
+    cids_abrang   = set()
+    for rn in rads_ano:
+        if rn in mapa_abrangencia:
+            cids_abrang.update(mapa_abrangencia[rn])
+    cids_ano      = cids_diretas | cids_abrang
+    n_cids        = len([c for c in cids_ano if c])
+    pop_coberta   = df_pop[df_pop["Cidade_norm"].isin(cids_ano)]["Populacao"].sum() if df_pop is not None else n_cids * 12_000
+    pct_sc        = pop_coberta / POP_SC_TOTAL * 100
     linhas_pop.append({
         "Ano": ano, "Municipios_Cobertos": n_cids,
         "Pop_Coberta": int(pop_coberta),
@@ -2647,6 +2678,7 @@ for ano in anos_validos:
         "Pct_Audiencia_SC": round(pop_coberta * TAXA_ESCUTA_RADIO / POP_SC_TOTAL * 100, 2),
         "Pop_SC_Total": POP_SC_TOTAL,
         "Pop_Nao_Coberta": POP_SC_TOTAL - int(pop_coberta),
+        "Ano_Parcial": "sim" if ano > ultimo_ano_completo else "não",
     })
 df_pop_ano = pd.DataFrame(linhas_pop)
 df_pop_ano.to_csv(OUTPUT_DIR / "relatorio_populacao_por_ano.csv", index=False, encoding="utf-8-sig")
