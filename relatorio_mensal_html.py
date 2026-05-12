@@ -11,6 +11,9 @@ Uso:
 python3 relatorio_mensal_html.py --mes 2025-11
 python3 relatorio_mensal_html.py --mes 2026-03
 
+# Com imagem
+ython3 relatorio_mensal_html.py --mes 2025-11 --imagem
+
 # Sem argumento: abre o menu e lista os anos/meses disponíveis
 python3 relatorio_mensal_html.p
 
@@ -1486,17 +1489,46 @@ if __name__ == "__main__":
     print("  Para PDF: abra no Chrome → Ctrl+P → Salvar como PDF → Paisagem")
 
     if args.imagem:
+        import tempfile, shutil
         nome_png = caminho.with_suffix(".png").name
         caminho_png = OUTPUT_DIR / nome_png
         print(f"  Exportando imagem PNG ({caminho_png})...")
+        # HTML temporário: oculta pág.2 (mapa) e Plotly — screenshot só da pág.1 (cards + rankings)
+        estilo_img = (
+            "<style>"
+            ".pag2{display:none!important;}"          # oculta mapa/meso (pág 2)
+            ".mapa-screen,.mapa-print{display:none!important;}"
+            "body{background:#dce6f2!important;}"
+            "</style></head>"
+        )
+        html_img = html.replace("</head>", estilo_img, 1)
+        with tempfile.NamedTemporaryFile(suffix=".html", prefix="relatorio_img_", delete=False) as _f:
+            tmp_html = Path(_f.name)
+        tmp_html.write_text(html_img, encoding="utf-8")
+        ff_profile = Path(tempfile.mkdtemp(prefix="ff-relatorio-"))
         try:
             devnull = subprocess.DEVNULL
-            resultado = subprocess.run(
-                ["firefox", "--headless", "--screenshot", str(caminho_png),
-                 f"--window-size=1400,1600", caminho.resolve().as_uri()],
-                stdout=devnull, stderr=devnull, timeout=30
+            subprocess.run(
+                ["firefox", "--headless", "--profile", str(ff_profile),
+                 "--screenshot", str(caminho_png.resolve()),
+                 "--window-size=1400,2000", tmp_html.resolve().as_uri()],
+                stdout=devnull, stderr=devnull, timeout=45
             )
             if caminho_png.exists():
+                # Recorta espaço em branco do rodapé
+                try:
+                    from PIL import Image as _Img
+                    import numpy as _np
+                    img = _Img.open(str(caminho_png)).convert("RGB")
+                    arr = _np.array(img)
+                    mask = (arr < 248).any(axis=2)
+                    rows = _np.where(mask.any(axis=1))[0]
+                    if len(rows):
+                        bottom = min(int(rows[-1]) + 30, img.height)
+                        img = img.crop((0, 0, img.width, bottom))
+                        img.save(str(caminho_png), optimize=True)
+                except Exception:
+                    pass
                 print(f"  ✓ {caminho_png}  ({caminho_png.stat().st_size/1024:.0f} KB)")
             else:
                 print("  ✗ Exportação de imagem falhou. Verifique se o Firefox está instalado.")
@@ -1504,6 +1536,9 @@ if __name__ == "__main__":
             print("  ✗ Firefox não encontrado. Instale o Firefox para usar --imagem.")
         except subprocess.TimeoutExpired:
             print("  ✗ Firefox demorou demais. Tente novamente.")
+        finally:
+            shutil.rmtree(ff_profile, ignore_errors=True)
+            tmp_html.unlink(missing_ok=True)
 
     try:
         devnull = subprocess.DEVNULL
