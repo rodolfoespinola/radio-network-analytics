@@ -845,8 +845,8 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
             f'<span class="rank-pos rank-pos-sm">{i:02d}</span>'
             f'<div class="rank-info">'
             f'<div class="rank-nome-row">'
-            f'<span class="rank-nome rank-nome-sm">{r["Radio"]}</span>'
             f'{cidade_tag}'
+            f'<span class="rank-nome rank-nome-sm">{r["Radio"]}</span>'
             f'</div>'
             f'<div class="rank-bar-wrap"><div class="rank-bar rank-bar-escuro" style="width:{pct:.1f}%"></div></div>'
             f'</div>'
@@ -1160,10 +1160,10 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
 
   /* ── CIDADE-SEDE DA RÁDIO ───────────────────────────── */
   .rank-nome-row {{
-    display:flex; align-items:center; gap:5px; min-width:0; margin-bottom:3px;
+    display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:0; margin-bottom:3px;
   }}
   .rank-nome-row .rank-nome-sm {{
-    flex:1; min-width:0; margin-bottom:0;
+    min-width:0; margin-bottom:0;
   }}
   .rank-cidade-r {{
     font-size:9px; font-weight:500; color:var(--texto-leve);
