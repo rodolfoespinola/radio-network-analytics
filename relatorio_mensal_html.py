@@ -838,14 +838,16 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
     rows_rad = ""
     for i, r in enumerate(m["top_rad"], 1):
         pct = r["v"]/max_rad*100
-        nome_r = r["Radio"][:36]+"…" if len(r["Radio"])>36 else r["Radio"]
         cidade_r = r.get("Cidade_sede", "")
         cidade_tag = f'<span class="rank-cidade-r">{cidade_r}</span>' if cidade_r else ""
         rows_rad += (
             f'<div class="rank-row rank-row-sm">'
             f'<span class="rank-pos rank-pos-sm">{i:02d}</span>'
             f'<div class="rank-info">'
-            f'<span class="rank-nome rank-nome-sm">{nome_r}{cidade_tag}</span>'
+            f'<div class="rank-nome-row">'
+            f'<span class="rank-nome rank-nome-sm">{r["Radio"]}</span>'
+            f'{cidade_tag}'
+            f'</div>'
             f'<div class="rank-bar-wrap"><div class="rank-bar rank-bar-escuro" style="width:{pct:.1f}%"></div></div>'
             f'</div>'
             f'<span class="rank-val-sm">{fmt_n(r["v"])}</span>'
@@ -1157,10 +1159,17 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   .meso-veic {{ font-family:var(--fonte-cond); font-size:14px; font-weight:700; color:var(--azul-escuro); min-width:30px; text-align:right; }}
 
   /* ── CIDADE-SEDE DA RÁDIO ───────────────────────────── */
+  .rank-nome-row {{
+    display:flex; align-items:center; gap:5px; min-width:0; margin-bottom:3px;
+  }}
+  .rank-nome-row .rank-nome-sm {{
+    flex:1; min-width:0; margin-bottom:0;
+  }}
   .rank-cidade-r {{
     font-size:9px; font-weight:500; color:var(--texto-leve);
     background:var(--cinza); border:1px solid var(--borda);
-    border-radius:3px; padding:0 5px; margin-left:4px; vertical-align:middle;
+    border-radius:3px; padding:1px 6px;
+    flex-shrink:0; white-space:nowrap;
   }}
 
   /* ── TIPO DE CONTEÚDO ───────────────────────────────── */
