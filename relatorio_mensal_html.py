@@ -445,14 +445,6 @@ def calcular(df, mapa_abr, ano, mes):
     top_rad["Cidade_sede"] = top_rad["Radio_norm_tmp"].map(mapa_sede_display).fillna("")
     top_rad = top_rad.drop(columns=["Radio_norm_tmp"])
 
-    # série histórica 12 meses
-    serie = []
-    for i in range(11,-1,-1):
-        m2 = mes - i; a2 = ano
-        while m2 <= 0: m2 += 12; a2 -= 1
-        cnt = len(df[(df["Ano"]==a2)&(df["Mes"]==m2)])
-        serie.append({"mes": f"{MESES_PT[m2][:3]}/{a2}", "v": cnt})
-
     # cobertura por mesorregião — lista completa de municípios (IBGE)
     # Mesorregiões IBGE oficiais (6 mesorregiões, 295 municípios de SC)
     _MESO_MUNIS = {
@@ -558,14 +550,6 @@ def calcular(df, mapa_abr, ano, mes):
             "munis_total": len(muni_set),
         }
 
-    # municípios sem cobertura (pop > 30k)
-    cidades_sem = [
-        {"cidade": row["Cidade"], "pop": int(row["Populacao"])}
-        for _, row in df[["Cidade","Cidade_norm","Populacao"]].drop_duplicates("Cidade_norm").iterrows()
-        if row["Cidade_norm"] not in munis and row.get("Populacao",0) > 30000
-    ]
-    cidades_sem = sorted(cidades_sem, key=lambda x:-x["pop"])[:8]
-
     # ── NOVAS MÉTRICAS ────────────────────────────────────────────
     dias_mes  = pd.Timestamp(ano, mes, 1).days_in_month
     media_diaria = len(dfm) / dias_mes
@@ -601,9 +585,7 @@ def calcular(df, mapa_abr, ano, mes):
         "top_cont":      top_cont,
         "top_cid":       top_cid.to_dict("records"),
         "top_rad":       top_rad.to_dict("records"),
-        "serie":         serie,
         "cob_meso":      cob_meso,
-        "sem_cobertura": cidades_sem,
         # novas
         "media_diaria":   media_diaria,
         "total_ano":      total_ano,
@@ -665,7 +647,7 @@ def gerar_mapa_mensal_div(dfm, m, cent_dict):
     )
     fig.update_layout(
         autosize=True,
-        height=420,
+        height=520,
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
         legend=dict(
             x=0.01, y=0.99,
@@ -819,23 +801,6 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
 
     hora_fmt = f"{m['hora_pico']:02d}h" if m["hora_pico"] is not None else "—"
 
-    # sparkline (H reduzido para caber melhor na página)
-    serie_vals   = [s["v"] for s in m["serie"]]
-    serie_labels = [s["mes"] for s in m["serie"]]
-    max_serie    = max(serie_vals) if serie_vals else 1
-    W, H = 420, 65
-    pts = []
-    for i, v in enumerate(serie_vals):
-        x = int(i / (len(serie_vals)-1) * W) if len(serie_vals)>1 else W//2
-        y = int(H - (v/max_serie)*H*0.85 - 4)
-        pts.append((x,y))
-    poly      = " ".join(f"{x},{y}" for x,y in pts)
-    fill_pts  = f"0,{H} " + poly + f" {W},{H}"
-    spark_labels = ""
-    for i, (x,y) in enumerate(pts):
-        if i==0 or i==len(pts)-1 or i==len(pts)//2:
-            spark_labels += f'<text x="{x}" y="{H+13}" class="spark-label">{serie_labels[i]}</text>'
-
     # barras
     max_pop_cont = m["top_cont"][0]["pop"] if m["top_cont"] else 1
     max_cid = m["top_cid"][0]["v"]   if m["top_cid"] else 1
@@ -884,13 +849,6 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
             f'</div>'
         )
 
-    sem_html = ""
-    for s in m["sem_cobertura"]:
-        sem_html += (f'<div class="sem-item"><span class="sem-cidade">{s["cidade"]}</span>'
-                     f'<span class="sem-pop">{fmt_pop(s["pop"])}</span></div>')
-    if not m["sem_cobertura"]:
-        sem_html = '<p class="sem-vazio">✓ Todos os municípios com mais de 30 mil hab. foram alcançados</p>'
-
     # Mapa SVG estático (PDF-compatível, coordenadas reais)
     mapa_svg = gerar_mapa_svg(m, cent_dict) if cent_dict else _mapa_svg_fallback(m)
 
@@ -935,7 +893,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
     font-family: var(--fonte);
     background: #dce6f2;
     color: var(--texto);
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.5;
   }}
 
@@ -1046,7 +1004,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
     letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px;
   }}
   .card-valor {{
-    font-family:var(--fonte-cond); font-size:38px; font-weight:700;
+    font-family:var(--fonte-cond); font-size:44px; font-weight:700;
     color:var(--azul-escuro); line-height:1; margin-bottom:5px;
   }}
   .card-valor.verde {{ color:var(--verde); }}
@@ -1085,24 +1043,21 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   .card-sm-body {{ flex:1; min-width:0; }}
   .card-sm-label {{ font-size:9px; font-weight:600; color:var(--texto-leve); letter-spacing:1.2px; text-transform:uppercase; }}
   .card-sm-valor {{
-    font-family:var(--fonte-cond); font-size:20px; font-weight:700;
+    font-family:var(--fonte-cond); font-size:24px; font-weight:700;
     color:var(--azul-escuro); line-height:1.1; margin:2px 0 1px;
   }}
   .card-sm-sub {{ font-size:10px; color:var(--texto-leve); }}
 
-  /* ── CORPO GRID (pág. 1: evolução | mapa+meso) ─────── */
-  .corpo {{
+  /* ── RANKINGS GRID (pág. 1) ─────────────────────────── */
+  .rankings-grid {{
     padding: 16px 24px 20px;
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 16px;
-  }}
-  /* ── PÁG. 2: rankings em 2 colunas ─────────────────── */
-  .pag2 {{
-    padding: 20px 24px 0;
     display: grid;
     grid-template-columns: 1.5fr 1fr 1fr;
     gap: 16px;
+  }}
+  /* ── PÁG. 2: mapa + meso (largura total) ────────────── */
+  .pag2 {{
+    padding: 20px 24px 0;
   }}
 
   /* ── SEÇÕES ─────────────────────────────────────────── */
@@ -1120,7 +1075,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
     background: #fafcff;
   }}
   .secao-titulo {{
-    font-family:var(--fonte-cond); font-size:12px; font-weight:700;
+    font-family:var(--fonte-cond); font-size:14px; font-weight:700;
     color:var(--azul-escuro); letter-spacing:.5px; text-transform:uppercase;
   }}
   .secao-badge {{
@@ -1152,7 +1107,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   .rank-row:nth-child(3) .rank-pos {{ color:#6aaad9; }}
   .rank-info {{ flex:1; min-width:0; }}
   .rank-nome {{
-    font-size:12px; font-weight:500; color:var(--texto);
+    font-size:13px; font-weight:500; color:var(--texto);
     display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px;
   }}
   .rank-bar-wrap {{ height:4px; background:#eef1f6; border-radius:2px; overflow:hidden; }}
@@ -1168,7 +1123,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   .rank-row-sm:nth-child(2) .rank-pos-sm {{ color:#3a7fcc; }}
   .rank-row-sm:nth-child(3) .rank-pos-sm {{ color:#6aaad9; }}
   .rank-nome-sm {{
-    font-size:11px; font-weight:500; color:var(--texto);
+    font-size:13px; font-weight:500; color:var(--texto);
     display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px;
   }}
   .rank-val-sm {{ font-family:var(--fonte-cond); font-size:14px; font-weight:700; color:var(--azul-escuro); min-width:38px; text-align:right; }}
@@ -1184,7 +1139,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   .mapa-print {{ display: none; }}
 
   /* ── MESORREGIÕES ───────────────────────────────────── */
-  .meso-grid {{ display:grid; grid-template-columns:1fr; gap:6px; }}
+  .meso-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }}
   .meso-item {{
     background:var(--cinza); border-radius:6px; padding:8px 12px;
     border: 1px solid #dde5f0;
@@ -1244,8 +1199,9 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   /* ── PRINT ──────────────────────────────────────────── */
   @media print {{
     body {{ background:white; }}
-    .pagina {{ box-shadow:none; max-width:100%; border:none; overflow:visible; }}
-    .pag2   {{ break-before:page; -webkit-break-before:page; }}
+    .pagina      {{ box-shadow:none; max-width:100%; border:none; overflow:visible; }}
+    .pag2        {{ break-before:page; -webkit-break-before:page; }}
+    .rankings-grid .secao {{ break-inside:avoid; -webkit-break-inside:avoid; }}
     .secao  {{ break-inside:avoid; -webkit-break-inside:avoid; overflow:visible; }}
     .rodape {{ break-inside:avoid; }}
     .mapa-screen {{ display:none !important; }}
@@ -1362,64 +1318,8 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   </div>
 </div>
 
-<!-- ═══════════ PÁGINA 1: evolução + mapa ═══════════ -->
-<div class="corpo">
-
-  <!-- COLUNA ESQUERDA: mapa SC (grande) -->
-  <div class="secao">
-    <div class="secao-header">
-      <span class="secao-titulo">Cobertura Municipal — SC</span>
-      <span class="secao-badge">{fmt_n(m['total_munis'])} de 295 municípios · {m['pct_sc']:.1f}% da população</span>
-    </div>
-    <div class="secao-body" style="padding:10px">
-      <div class="mapa-container">
-        {mapa_content}
-      </div>
-    </div>
-  </div>
-
-  <!-- COLUNA DIREITA: evolução histórica + mesorregiões -->
-  <div style="display:flex;flex-direction:column;gap:16px">
-
-    <div class="secao">
-      <div class="secao-header">
-        <span class="secao-titulo">Evolução dos Últimos 12 Meses</span>
-        <span class="secao-badge">veiculações / mês</span>
-      </div>
-      <div class="secao-body" style="padding-bottom:22px">
-        <svg class="spark-svg" viewBox="-4 0 {W+8} {H+20}" height="{H+20}">
-          <defs>
-            <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#1a5fa8" stop-opacity=".6"/>
-              <stop offset="100%" stop-color="#1a5fa8" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <polygon points="{fill_pts}" class="spark-fill"/>
-          <polyline points="{poly}" class="spark-line"/>
-          {''.join(f'<circle cx="{x}" cy="{y}" r="3" class="spark-dot"/>' for x,y in pts)}
-          {spark_labels}
-        </svg>
-      </div>
-    </div>
-
-    <div class="secao">
-      <div class="secao-header">
-        <span class="secao-titulo">Cobertura por Mesorregião</span>
-        <span class="secao-badge">veiculações diretas</span>
-      </div>
-      <div class="secao-body">
-        <div class="meso-grid">
-          {_meso_html(m["cob_meso"])}
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-</div><!-- /corpo pág.1 -->
-
-<!-- ═══════════ PÁGINA 2: rankings detalhados ═══════════ -->
-<div class="pag2">
+<!-- ═══════════ PÁGINA 1: rankings ═══════════ -->
+<div class="rankings-grid">
 
   <!-- TOP 10 CONTEÚDOS -->
   <div class="secao">
@@ -1432,61 +1332,79 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
     </div>
   </div>
 
-  <!-- TOP CIDADES + TOP RÁDIOS -->
-  <div style="display:flex;flex-direction:column;gap:16px">
-    <div class="secao">
-      <div class="secao-header">
-        <span class="secao-titulo">Cidades com Mais Veiculações</span>
-        <span class="secao-badge">direta</span>
-      </div>
-      <div class="secao-body">
-        {rows_cid}
-      </div>
+  <!-- TOP CIDADES -->
+  <div class="secao">
+    <div class="secao-header">
+      <span class="secao-titulo">Cidades com Mais Veiculações</span>
+      <span class="secao-badge">direta</span>
     </div>
-    <div class="secao">
-      <div class="secao-header">
-        <span class="secao-titulo">Ranking de Emissoras</span>
-        <span class="secao-badge">no mês</span>
-      </div>
-      <div class="secao-body">
-        {rows_rad}
+    <div class="secao-body">
+      {rows_cid}
+    </div>
+  </div>
+
+  <!-- TOP RÁDIOS -->
+  <div class="secao">
+    <div class="secao-header">
+      <span class="secao-titulo">Ranking de Emissoras</span>
+      <span class="secao-badge">no mês</span>
+    </div>
+    <div class="secao-body">
+      {rows_rad}
+    </div>
+  </div>
+
+</div><!-- /rankings-grid pág.1 -->
+
+<!-- ═══════════ PÁGINA 2: mapa + mesorregiões ═══════════ -->
+<div class="pag2">
+
+  <!-- MAPA LARGURA TOTAL -->
+  <div class="secao" style="margin-bottom:16px">
+    <div class="secao-header">
+      <span class="secao-titulo">Cobertura Municipal — SC</span>
+      <span class="secao-badge">{fmt_n(m['total_munis'])} de 295 municípios · {m['pct_sc']:.1f}% da população</span>
+    </div>
+    <div class="secao-body" style="padding:10px">
+      <div class="mapa-container">
+        {mapa_content}
       </div>
     </div>
   </div>
 
-  <!-- SEM COBERTURA -->
-  <div class="secao">
+  <!-- MESORREGIÕES 3 COLUNAS -->
+  <div class="secao" style="margin-bottom:16px">
     <div class="secao-header">
-      <span class="secao-titulo">Municípios Não Alcançados</span>
-      <span class="secao-badge">pop. &gt; 30 mil</span>
+      <span class="secao-titulo">Cobertura por Mesorregião</span>
+      <span class="secao-badge">veiculações diretas</span>
     </div>
     <div class="secao-body">
-      <div class="sem-grid">
-        {sem_html}
+      <div class="meso-grid">
+        {_meso_html(m["cob_meso"])}
       </div>
     </div>
+  </div>
+
+  <!-- NOTA METODOLÓGICA -->
+  <div style="padding:10px 0 0;font-size:11px;color:#6a7d92;line-height:1.7;border-top:1px solid var(--borda);margin-top:4px">
+    <strong style="color:#3a5470">Nota metodológica:</strong>
+    &nbsp;<strong>Municípios alcançados</strong> = municípios no raio de sinal de cada emissora parceira (mapa mar/2026), sem dupla contagem.
+    &nbsp;<strong>População alcançada</strong> = soma da população (IBGE) dos municípios alcançados.
+    &nbsp;<strong>Impressões de audiência</strong> = Σ (pop. de cobertura da emissora × 80%) por veiculação — mede exposição acumulada, não ouvintes únicos; o mesmo ouvinte é contado uma vez a cada inserção que o alcança.
+    &nbsp;<strong>Horário de pico</strong> = hora do dia com maior número de veiculações no período.
+    &nbsp;<strong>Mesorregiões</strong> = classificação IBGE; barra = veiculações diretas, badge = municípios alcançados por sinal.
+  </div>
+
+  <div class="rodape" style="margin-top:8px">
+    <div class="rodape-texto">
+      Rádio Alesc · Assembleia Legislativa de Santa Catarina &nbsp;·&nbsp;
+      União dos sinais sem dupla contagem &nbsp;·&nbsp;
+      Pop. SC: {fmt_n(POP_SC_TOTAL)} hab.
+    </div>
+    <div class="rodape-gerado">Relatório de {nome_mes} de {m['ano']}</div>
   </div>
 
 </div><!-- /pag2 -->
-
-<!-- RODAPÉ -->
-<div style="padding:10px 24px 0;font-size:9.5px;color:#6a7d92;line-height:1.7;border-top:1px solid var(--borda);margin-top:4px">
-  <strong style="color:#3a5470">Nota metodológica:</strong>
-  &nbsp;<strong>Municípios alcançados</strong> = municípios no raio de sinal de cada emissora parceira (mapa mar/2026), sem dupla contagem.
-  &nbsp;<strong>População alcançada</strong> = soma da população (IBGE) dos municípios alcançados.
-  &nbsp;<strong>Impressões de audiência</strong> = Σ (pop. de cobertura da emissora × 80%) por veiculação — mede exposição acumulada, não ouvintes únicos; o mesmo ouvinte é contado uma vez a cada inserção que o alcança.
-  &nbsp;<strong>Horário de pico</strong> = hora do dia com maior número de veiculações no período.
-  &nbsp;<strong>Mesorregiões</strong> = classificação IBGE; barra = veiculações diretas, badge = municípios alcançados por sinal.
-</div>
-
-<div class="rodape" style="margin-top:8px">
-  <div class="rodape-texto">
-    Rádio Alesc · Assembleia Legislativa de Santa Catarina &nbsp;·&nbsp;
-    União dos sinais sem dupla contagem &nbsp;·&nbsp;
-    Pop. SC: {fmt_n(POP_SC_TOTAL)} hab.
-  </div>
-  <div class="rodape-gerado">Relatório de {nome_mes} de {m['ano']}</div>
-</div>
 
 </div>
 </body>
@@ -1522,6 +1440,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Relatório mensal Rádio Alesc")
     parser.add_argument("--mes", help="Período no formato YYYY-MM (ex: --mes 2025-11)")
+    parser.add_argument("--imagem", action="store_true", help="Exporta PNG além do HTML (requer Firefox)")
     args = parser.parse_args()
 
     anos = sorted(df["Ano"].unique())
@@ -1565,6 +1484,26 @@ if __name__ == "__main__":
     caminho.write_text(html, encoding="utf-8")
     print(f"\n  ✓ {caminho}  ({caminho.stat().st_size/1024:.0f} KB)")
     print("  Para PDF: abra no Chrome → Ctrl+P → Salvar como PDF → Paisagem")
+
+    if args.imagem:
+        nome_png = caminho.with_suffix(".png").name
+        caminho_png = OUTPUT_DIR / nome_png
+        print(f"  Exportando imagem PNG ({caminho_png})...")
+        try:
+            devnull = subprocess.DEVNULL
+            resultado = subprocess.run(
+                ["firefox", "--headless", "--screenshot", str(caminho_png),
+                 f"--window-size=1400,1600", caminho.resolve().as_uri()],
+                stdout=devnull, stderr=devnull, timeout=30
+            )
+            if caminho_png.exists():
+                print(f"  ✓ {caminho_png}  ({caminho_png.stat().st_size/1024:.0f} KB)")
+            else:
+                print("  ✗ Exportação de imagem falhou. Verifique se o Firefox está instalado.")
+        except FileNotFoundError:
+            print("  ✗ Firefox não encontrado. Instale o Firefox para usar --imagem.")
+        except subprocess.TimeoutExpired:
+            print("  ✗ Firefox demorou demais. Tente novamente.")
 
     try:
         devnull = subprocess.DEVNULL
