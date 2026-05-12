@@ -979,7 +979,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
     display: flex; gap:28px; align-items:center;
     border-bottom: 1px solid var(--borda);
   }}
-  .faixa-item {{ font-size:11px; color:var(--texto-leve); }}
+  .faixa-item {{ font-size:12px; color:var(--texto-leve); }}
   .faixa-item strong {{ color:var(--azul); font-weight:600; }}
 
   /* ── CARDS PRINCIPAIS ───────────────────────────────── */
@@ -1005,7 +1005,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   .card-cinza::before {{ background: linear-gradient(90deg, #4a6070, #8a9bb0); }}
   .card-dourado::before {{ background: linear-gradient(90deg, #a07810, var(--dourado)); }}
   .card-label {{
-    font-size:10px; font-weight:600; color:var(--texto-leve);
+    font-size:12px; font-weight:600; color:var(--texto-leve);
     letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px;
   }}
   .card-valor {{
@@ -1013,7 +1013,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
     color:var(--azul-escuro); line-height:1; margin-bottom:5px;
   }}
   .card-valor.verde {{ color:var(--verde); }}
-  .card-sub {{ font-size:11px; color:var(--texto-leve); }}
+  .card-sub {{ font-size:12px; color:var(--texto-leve); }}
   .delta {{
     display:inline-block; font-size:11px; font-weight:600;
     padding:2px 7px; border-radius:20px; margin-top:4px;
@@ -1046,18 +1046,18 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
   .icon-dourado {{ background: #fef6e4; }}
   .icon-cinza   {{ background: #f0f3f8; }}
   .card-sm-body {{ flex:1; min-width:0; }}
-  .card-sm-label {{ font-size:9px; font-weight:600; color:var(--texto-leve); letter-spacing:1.2px; text-transform:uppercase; }}
+  .card-sm-label {{ font-size:11px; font-weight:600; color:var(--texto-leve); letter-spacing:1.2px; text-transform:uppercase; }}
   .card-sm-valor {{
     font-family:var(--fonte-cond); font-size:24px; font-weight:700;
     color:var(--azul-escuro); line-height:1.1; margin:2px 0 1px;
   }}
-  .card-sm-sub {{ font-size:10px; color:var(--texto-leve); }}
+  .card-sm-sub {{ font-size:12px; color:var(--texto-leve); }}
 
   /* ── RANKINGS GRID (pág. 1) ─────────────────────────── */
   .rankings-grid {{
     padding: 16px 24px 20px;
     display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-columns: 1.2fr 1fr 1fr;
     gap: 16px;
   }}
   /* ── PÁG. 2: mapa + meso (largura total) ────────────── */
@@ -1253,8 +1253,7 @@ def gerar_html(m, cent_dict=None, mapa_div=""):
 
 <!-- FAIXA INFO -->
 <div class="faixa-info">
-  <div class="faixa-item">Dados: <strong>Audiency Technology · {nome_mes} de {m['ano']}</strong></div>
-  <div class="faixa-item">Mapa de cobertura: <strong>referência mar/2026</strong> (raio de sinal por emissora)</div>
+  <div class="faixa-item">Fonte: <strong>Audiency Technology · {nome_mes} de {m['ano']}</strong></div>
   <div class="faixa-item">Cobertura = <strong>união dos sinais</strong> das emissoras parceiras, sem dupla contagem</div>
   <div class="faixa-item" style="margin-left:auto">Gerado em <strong>{gerado_em}</strong></div>
 </div>
@@ -1444,6 +1443,220 @@ def _mapa_svg_fallback(m):
       {circles}
     </svg>"""
 
+def gerar_html_imagem(m):
+    """HTML compacto e legível para exportação PNG (WhatsApp/mobile). 800px × ~1300px."""
+    nome_mes  = MESES_PT[m["mes"]]
+    delta_sig = "▲" if m["delta"] >= 0 else "▼"
+    delta_cls = "pos" if m["delta"] >= 0 else "neg"
+    hora_fmt  = f"{m['hora_pico']:02d}h" if m["hora_pico"] is not None else "—"
+
+    top5_cont = m["top_cont"][:5]
+    top5_cid  = m["top_cid"][:5]
+    top5_rad  = m["top_rad"][:5]
+    max_cont  = top5_cont[0]["pop"] if top5_cont else 1
+    max_cid   = top5_cid[0]["v"]   if top5_cid  else 1
+    max_rad   = top5_rad[0]["v"]   if top5_rad  else 1
+
+    rows_cont = ""
+    for i, c in enumerate(top5_cont, 1):
+        pct  = c["pop"] / max_cont * 100
+        nome = c["nome"][:54] + "…" if len(c["nome"]) > 54 else c["nome"]
+        rows_cont += (
+            f'<div class="r-row">'
+            f'<span class="r-pos">{i:02d}</span>'
+            f'<div class="r-info"><span class="r-nome">{nome}</span>'
+            f'<div class="r-bar-w"><div class="r-bar r-azul" style="width:{pct:.0f}%"></div></div></div>'
+            f'<span class="r-val">{fmt_pop(c["pop"])}</span>'
+            f'</div>'
+        )
+
+    rows_cid = ""
+    for i, c in enumerate(top5_cid, 1):
+        pct = c["v"] / max_cid * 100
+        rows_cid += (
+            f'<div class="r-row">'
+            f'<span class="r-pos">{i:02d}</span>'
+            f'<div class="r-info"><span class="r-nome">{c["Cidade"]}</span>'
+            f'<div class="r-bar-w"><div class="r-bar r-verde" style="width:{pct:.0f}%"></div></div></div>'
+            f'<span class="r-val">{c["v"]}</span>'
+            f'</div>'
+        )
+
+    rows_rad = ""
+    for i, r in enumerate(top5_rad, 1):
+        pct      = r["v"] / max_rad * 100
+        cidade_r = r.get("Cidade_sede", "")
+        ctag     = f'<span class="r-cidade">{cidade_r}</span>' if cidade_r else ""
+        rows_rad += (
+            f'<div class="r-row">'
+            f'<span class="r-pos">{i:02d}</span>'
+            f'<div class="r-info">'
+            f'{ctag}'
+            f'<span class="r-nome">{r["Radio"]}</span>'
+            f'<div class="r-bar-w"><div class="r-bar r-escuro" style="width:{pct:.0f}%"></div></div></div>'
+            f'<span class="r-val">{r["v"]}</span>'
+            f'</div>'
+        )
+
+    return f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *{{ margin:0; padding:0; box-sizing:border-box; }}
+  body{{ font-family:'Barlow',sans-serif; background:#ffffff; width:800px; font-size:16px; color:#1c2b3a; }}
+  .pag{{ width:800px; background:#f0f4fa; }}
+
+  .cab{{
+    background:linear-gradient(135deg,#0d3d6e 0%,#1a5fa8 100%);
+    padding:22px 28px; display:flex; align-items:center; justify-content:space-between;
+    border-bottom:3px solid #c8991a;
+  }}
+  .cab-logo{{ font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:700; color:white; line-height:1; }}
+  .cab-logo small{{ font-size:12px; font-weight:400; color:rgba(255,255,255,.55); display:block; letter-spacing:1.5px; text-transform:uppercase; margin-top:3px; }}
+  .cab-mes{{ font-family:'Barlow Condensed',sans-serif; font-size:44px; font-weight:700; color:white; text-align:center; line-height:1; }}
+  .cab-mes small{{ font-size:13px; color:rgba(255,255,255,.5); display:block; text-align:center; margin-bottom:5px; letter-spacing:2px; text-transform:uppercase; }}
+  .cab-right{{ text-align:right; }}
+  .cab-badge{{ background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); border-radius:8px; padding:10px 16px; display:inline-block; }}
+  .cab-badge b{{ font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; color:white; display:block; }}
+  .cab-badge small{{ font-size:10px; color:rgba(255,255,255,.5); letter-spacing:1px; text-transform:uppercase; }}
+
+  .kpi-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:18px 20px 0; }}
+  .kpi{{
+    background:white; border-radius:10px; padding:18px 20px 16px;
+    border:1.5px solid #c2d0e2; position:relative; overflow:hidden;
+    box-shadow:0 2px 8px rgba(13,61,110,.09);
+  }}
+  .kpi::before{{ content:''; position:absolute; top:0; left:0; right:0; height:4px; }}
+  .kpi-az::before  {{ background:linear-gradient(90deg,#0d3d6e,#1a5fa8); }}
+  .kpi-vd::before  {{ background:linear-gradient(90deg,#15703c,#1e8a4a); }}
+  .kpi-cz::before  {{ background:linear-gradient(90deg,#4a6070,#8a9bb0); }}
+  .kpi-do::before  {{ background:linear-gradient(90deg,#a07810,#c8991a); }}
+  .kpi-lbl{{ font-size:12px; font-weight:700; color:#5a6a7e; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px; }}
+  .kpi-val{{ font-family:'Barlow Condensed',sans-serif; font-size:60px; font-weight:700; color:#0d3d6e; line-height:1; }}
+  .kpi-val.vd{{ color:#1e8a4a; }} .kpi-val.cz{{ color:#3a5470; }}
+  .kpi-sub{{ font-size:13px; color:#5a6a7e; margin-top:7px; line-height:1.4; }}
+  .delta{{ display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px; margin-top:6px; }}
+  .pos{{ background:#e6f7ee; color:#1e8a4a; }} .neg{{ background:#fde8e8; color:#c0392b; }}
+
+  .sm-grid{{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:14px 20px 18px; }}
+  .sm{{
+    background:white; border:1.5px solid #c2d0e2; border-radius:8px;
+    padding:12px 16px; display:flex; align-items:center; gap:12px;
+    box-shadow:0 1px 4px rgba(13,61,110,.07);
+  }}
+  .sm-icon{{ font-size:22px; flex-shrink:0; }}
+  .sm-lbl{{ font-size:11px; font-weight:700; color:#5a6a7e; letter-spacing:1px; text-transform:uppercase; }}
+  .sm-val{{ font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:700; color:#0d3d6e; line-height:1; margin:3px 0 2px; }}
+  .sm-sub{{ font-size:12px; color:#5a6a7e; }}
+
+  .secao{{ background:white; border-radius:10px; border:1.5px solid #c2d0e2; overflow:hidden; box-shadow:0 1px 4px rgba(13,61,110,.07); }}
+  .s-head{{ padding:12px 16px; background:#fafcff; border-bottom:1.5px solid #c2d0e2; display:flex; justify-content:space-between; align-items:center; }}
+  .s-tit{{ font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; color:#0d3d6e; letter-spacing:.5px; text-transform:uppercase; }}
+  .s-badge{{ font-size:11px; font-weight:600; background:#e8f0fb; color:#1a5fa8; padding:3px 10px; border-radius:20px; border:1px solid #c5d8f0; }}
+  .s-body{{ padding:12px 16px; }}
+
+  .r-row{{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #eef1f8; }}
+  .r-row:last-child{{ border-bottom:none; }}
+  .r-pos{{ font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; color:#c2d0e2; min-width:30px; text-align:right; line-height:1; }}
+  .r-row:nth-child(1) .r-pos{{ color:#0d3d6e; }}
+  .r-row:nth-child(2) .r-pos{{ color:#1a5fa8; }}
+  .r-row:nth-child(3) .r-pos{{ color:#5a94cc; }}
+  .r-info{{ flex:1; min-width:0; }}
+  .r-nome{{ font-size:15px; font-weight:500; color:#1c2b3a; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }}
+  .r-bar-w{{ height:5px; background:#eef1f6; border-radius:3px; overflow:hidden; }}
+  .r-bar{{ height:100%; border-radius:3px; }}
+  .r-azul{{ background:#1a5fa8; }} .r-verde{{ background:#1e8a4a; }} .r-escuro{{ background:#0d3d6e; }}
+  .r-val{{ font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:700; color:#0d3d6e; min-width:48px; text-align:right; }}
+  .r-cidade{{ font-size:10px; font-weight:600; color:#5a6a7e; background:#f4f6f9; border:1px solid #c2d0e2; border-radius:3px; padding:1px 7px; display:inline-block; margin-bottom:3px; white-space:nowrap; }}
+
+  .bloco-full{{ padding:0 20px 14px; }}
+  .bloco-2col{{ padding:0 20px 18px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }}
+
+  .rodape{{ background:#0d3d6e; border-top:3px solid #c8991a; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; margin-top:18px; }}
+  .rodape-txt{{ font-size:11px; color:rgba(255,255,255,.45); }}
+  .rodape-url{{ font-size:11px; color:rgba(255,255,255,.35); }}
+</style>
+</head>
+<body>
+<div class="pag">
+
+<div class="cab">
+  <div class="cab-logo">ALESC<small>Assembleia Legislativa de SC</small></div>
+  <div class="cab-mes"><small>Relatório · Rádio Alesc</small>{nome_mes.upper()} / {m['ano']}</div>
+  <div class="cab-right">
+    <div class="cab-badge"><b>RÁDIO ALESC</b><small>Comunicação legislativa</small></div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi kpi-az">
+    <div class="kpi-lbl">Total de Veiculações</div>
+    <div class="kpi-val">{fmt_n(m['total_veic'])}</div>
+    <div class="kpi-sub">inserções no período<br><span class="delta {delta_cls}">{delta_sig} {abs(m['delta']):.1f}% vs. mês anterior</span></div>
+  </div>
+  <div class="kpi kpi-vd">
+    <div class="kpi-lbl">Municípios Alcançados</div>
+    <div class="kpi-val vd">{fmt_n(m['total_munis'])}</div>
+    <div class="kpi-sub">de 295 municípios de SC<br><b style="color:#1e8a4a">{m['total_munis']/295*100:.0f}% dos municípios</b></div>
+  </div>
+  <div class="kpi kpi-az">
+    <div class="kpi-lbl">População Alcançada</div>
+    <div class="kpi-val">{fmt_pop(m['pop'])}</div>
+    <div class="kpi-sub">hab. no raio de sinal<br><b style="color:#1a5fa8">{m['pct_sc']:.1f}% da população de SC</b></div>
+  </div>
+  <div class="kpi kpi-cz">
+    <div class="kpi-lbl">Emissoras Parceiras</div>
+    <div class="kpi-val cz">{fmt_n(m['total_emiss'])}</div>
+    <div class="kpi-sub">rádios com veiculações<br>no período analisado</div>
+  </div>
+</div>
+
+<div class="sm-grid">
+  <div class="sm"><span class="sm-icon">🕐</span>
+    <div><div class="sm-lbl">Horário de Pico</div><div class="sm-val">{hora_fmt}</div><div class="sm-sub">mais veiculações</div></div>
+  </div>
+  <div class="sm"><span class="sm-icon">📅</span>
+    <div><div class="sm-lbl">Média Diária</div><div class="sm-val">{m['media_diaria']:.0f}</div><div class="sm-sub">veiculações / dia</div></div>
+  </div>
+  <div class="sm"><span class="sm-icon">🔊</span>
+    <div><div class="sm-lbl">Impressões</div><div class="sm-val">{fmt_pop(m['audiencia_total'])}</div><div class="sm-sub">exposição acumulada</div></div>
+  </div>
+</div>
+
+<div class="bloco-full">
+  <div class="secao">
+    <div class="s-head">
+      <span class="s-tit">Top 5 Conteúdos · Maior Alcance Populacional</span>
+      <span class="s-badge">pop. alcançada</span>
+    </div>
+    <div class="s-body">{rows_cont}</div>
+  </div>
+</div>
+
+<div class="bloco-2col">
+  <div class="secao">
+    <div class="s-head"><span class="s-tit">Cidades</span><span class="s-badge">veiculações</span></div>
+    <div class="s-body">{rows_cid}</div>
+  </div>
+  <div class="secao">
+    <div class="s-head"><span class="s-tit">Emissoras</span><span class="s-badge">no mês</span></div>
+    <div class="s-body">{rows_rad}</div>
+  </div>
+</div>
+
+<div class="rodape">
+  <span class="rodape-txt">Rádio Alesc · Assembleia Legislativa de Santa Catarina · {nome_mes} de {m['ano']}</span>
+  <span class="rodape-url">alesc.sc.gov.br</span>
+</div>
+
+</div>
+</body>
+</html>"""
+
 # ══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     df   = carregar()
@@ -1502,15 +1715,7 @@ if __name__ == "__main__":
         nome_png = caminho.with_suffix(".png").name
         caminho_png = OUTPUT_DIR / nome_png
         print(f"  Exportando imagem PNG ({caminho_png})...")
-        # HTML temporário: oculta pág.2 (mapa) e Plotly — screenshot só da pág.1 (cards + rankings)
-        estilo_img = (
-            "<style>"
-            ".pag2{display:none!important;}"          # oculta mapa/meso (pág 2)
-            ".mapa-screen,.mapa-print{display:none!important;}"
-            "body{background:#dce6f2!important;}"
-            "</style></head>"
-        )
-        html_img = html.replace("</head>", estilo_img, 1)
+        html_img = gerar_html_imagem(m)
         with tempfile.NamedTemporaryFile(suffix=".html", prefix="relatorio_img_", delete=False) as _f:
             tmp_html = Path(_f.name)
         tmp_html.write_text(html_img, encoding="utf-8")
@@ -1520,7 +1725,7 @@ if __name__ == "__main__":
             subprocess.run(
                 ["firefox", "--headless", "--profile", str(ff_profile),
                  "--screenshot", str(caminho_png.resolve()),
-                 "--window-size=1400,2000", tmp_html.resolve().as_uri()],
+                 "--window-size=800,2000", tmp_html.resolve().as_uri()],
                 stdout=devnull, stderr=devnull, timeout=45
             )
             if caminho_png.exists():
