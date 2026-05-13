@@ -1443,12 +1443,38 @@ def _mapa_svg_fallback(m):
       {circles}
     </svg>"""
 
-def gerar_html_imagem(m):
-    """HTML compacto e legível para exportação PNG (WhatsApp/mobile). 800px × ~1300px."""
+def gerar_html_imagem(m, cent_dict=None):
+    """HTML compacto e legível para exportação PNG (WhatsApp/mobile). 800px × ~1600px."""
     nome_mes  = MESES_PT[m["mes"]]
     delta_sig = "▲" if m["delta"] >= 0 else "▼"
     delta_cls = "pos" if m["delta"] >= 0 else "neg"
     hora_fmt  = f"{m['hora_pico']:02d}h" if m["hora_pico"] is not None else "—"
+
+    # Mapa SVG estático — dimensões fixas para caber no layout
+    mapa_svg_raw = gerar_mapa_svg(m, cent_dict) if cent_dict else _mapa_svg_fallback(m)
+    mapa_svg = mapa_svg_raw.replace(
+        'style="width:100%;height:auto;background:#eef4fb;border-radius:6px;display:block"',
+        'style="width:520px;height:380px;background:#eef4fb;border-radius:8px;display:block;margin:0 auto"'
+    )
+
+    # Mesorregiões — versão compacta para a imagem
+    max_meso_v = max((v["veiculacoes"] for v in m["cob_meso"].values()), default=1) or 1
+    meso_html = ""
+    for nm, info in m["cob_meso"].items():
+        v   = info["veiculacoes"]
+        alc = info.get("munis_alcancados", 0)
+        tot = info.get("munis_total", 0)
+        pct = v / max_meso_v * 100
+        cls = "mi ativo" if v > 0 else "mi"
+        meso_html += (
+            f'<div class="{cls}">'
+            f'<div class="mi-nome">{nm}<span class="mi-muni">{alc}/{tot}</span></div>'
+            f'<div class="mi-bar-row">'
+            f'<div class="mi-bar-w"><div class="mi-bar" style="width:{pct:.0f}%"></div></div>'
+            f'<span class="mi-val">{fmt_n(v)}</span>'
+            f'</div>'
+            f'</div>'
+        )
 
     top5_cont = m["top_cont"][:5]
     top5_cid  = m["top_cid"][:5]
@@ -1542,41 +1568,57 @@ def gerar_html_imagem(m):
   .delta{{ display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px; margin-top:6px; }}
   .pos{{ background:#e6f7ee; color:#1e8a4a; }} .neg{{ background:#fde8e8; color:#c0392b; }}
 
-  .sm-grid{{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:14px 20px 18px; }}
+  .sm-grid{{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:12px 20px 16px; }}
   .sm{{
     background:white; border:1.5px solid #c2d0e2; border-radius:8px;
-    padding:12px 16px; display:flex; align-items:center; gap:12px;
+    padding:10px 14px; display:flex; align-items:center; gap:10px;
     box-shadow:0 1px 4px rgba(13,61,110,.07);
   }}
-  .sm-icon{{ font-size:22px; flex-shrink:0; }}
-  .sm-lbl{{ font-size:11px; font-weight:700; color:#5a6a7e; letter-spacing:1px; text-transform:uppercase; }}
-  .sm-val{{ font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:700; color:#0d3d6e; line-height:1; margin:3px 0 2px; }}
-  .sm-sub{{ font-size:12px; color:#5a6a7e; }}
+  .sm-icon{{ font-size:20px; flex-shrink:0; }}
+  .sm-lbl{{ font-size:10px; font-weight:700; color:#5a6a7e; letter-spacing:1px; text-transform:uppercase; }}
+  .sm-val{{ font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:700; color:#0d3d6e; line-height:1; margin:2px 0 1px; }}
+  .sm-sub{{ font-size:11px; color:#5a6a7e; }}
+
+  /* mapa */
+  .bloco-mapa{{ padding:0 20px 14px; text-align:center; }}
+  .mapa-tit{{ font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:#0d3d6e; letter-spacing:.5px; text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }}
+  .mapa-badge{{ font-size:11px; font-weight:600; background:#e8f0fb; color:#1a5fa8; padding:2px 10px; border-radius:20px; border:1px solid #c5d8f0; }}
+
+  /* mesorregiões compacto */
+  .meso-grid-img{{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:0 20px 14px; }}
+  .mi{{ background:#f4f6f9; border-radius:7px; padding:9px 12px; border:1px solid #dde5f0; border-left:3px solid #c0cfe0; }}
+  .mi.ativo{{ border-left-color:#1a5fa8; background:#f0f6ff; }}
+  .mi-nome{{ font-size:11px; font-weight:600; color:#1c2b3a; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center; }}
+  .mi-muni{{ font-size:9px; color:#5a6a7e; background:#c5d8f0; border-radius:8px; padding:1px 6px; }}
+  .mi-bar-row{{ display:flex; align-items:center; gap:6px; }}
+  .mi-bar-w{{ flex:1; height:4px; background:#dde5f0; border-radius:2px; overflow:hidden; }}
+  .mi-bar{{ height:100%; background:#1a5fa8; border-radius:2px; }}
+  .mi-val{{ font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:#0d3d6e; min-width:26px; text-align:right; }}
 
   .secao{{ background:white; border-radius:10px; border:1.5px solid #c2d0e2; overflow:hidden; box-shadow:0 1px 4px rgba(13,61,110,.07); }}
-  .s-head{{ padding:12px 16px; background:#fafcff; border-bottom:1.5px solid #c2d0e2; display:flex; justify-content:space-between; align-items:center; }}
-  .s-tit{{ font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; color:#0d3d6e; letter-spacing:.5px; text-transform:uppercase; }}
-  .s-badge{{ font-size:11px; font-weight:600; background:#e8f0fb; color:#1a5fa8; padding:3px 10px; border-radius:20px; border:1px solid #c5d8f0; }}
-  .s-body{{ padding:12px 16px; }}
+  .s-head{{ padding:11px 16px; background:#fafcff; border-bottom:1.5px solid #c2d0e2; display:flex; justify-content:space-between; align-items:center; }}
+  .s-tit{{ font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:#0d3d6e; letter-spacing:.5px; text-transform:uppercase; }}
+  .s-badge{{ font-size:10px; font-weight:600; background:#e8f0fb; color:#1a5fa8; padding:2px 9px; border-radius:20px; border:1px solid #c5d8f0; }}
+  .s-body{{ padding:10px 14px; }}
 
-  .r-row{{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #eef1f8; }}
+  .r-row{{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #eef1f8; }}
   .r-row:last-child{{ border-bottom:none; }}
-  .r-pos{{ font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; color:#c2d0e2; min-width:30px; text-align:right; line-height:1; }}
+  .r-pos{{ font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:700; color:#c2d0e2; min-width:28px; text-align:right; line-height:1; }}
   .r-row:nth-child(1) .r-pos{{ color:#0d3d6e; }}
   .r-row:nth-child(2) .r-pos{{ color:#1a5fa8; }}
   .r-row:nth-child(3) .r-pos{{ color:#5a94cc; }}
   .r-info{{ flex:1; min-width:0; }}
-  .r-nome{{ font-size:15px; font-weight:500; color:#1c2b3a; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }}
-  .r-bar-w{{ height:5px; background:#eef1f6; border-radius:3px; overflow:hidden; }}
-  .r-bar{{ height:100%; border-radius:3px; }}
+  .r-nome{{ font-size:14px; font-weight:500; color:#1c2b3a; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }}
+  .r-bar-w{{ height:4px; background:#eef1f6; border-radius:2px; overflow:hidden; }}
+  .r-bar{{ height:100%; border-radius:2px; }}
   .r-azul{{ background:#1a5fa8; }} .r-verde{{ background:#1e8a4a; }} .r-escuro{{ background:#0d3d6e; }}
-  .r-val{{ font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:700; color:#0d3d6e; min-width:48px; text-align:right; }}
-  .r-cidade{{ font-size:10px; font-weight:600; color:#5a6a7e; background:#f4f6f9; border:1px solid #c2d0e2; border-radius:3px; padding:1px 7px; display:inline-block; margin-bottom:3px; white-space:nowrap; }}
+  .r-val{{ font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; color:#0d3d6e; min-width:44px; text-align:right; }}
+  .r-cidade{{ font-size:10px; font-weight:600; color:#5a6a7e; background:#f4f6f9; border:1px solid #c2d0e2; border-radius:3px; padding:1px 6px; display:inline-block; margin-bottom:3px; white-space:nowrap; }}
 
-  .bloco-full{{ padding:0 20px 14px; }}
-  .bloco-2col{{ padding:0 20px 18px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }}
+  .bloco-full{{ padding:0 20px 12px; }}
+  .bloco-2col{{ padding:0 20px 18px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
 
-  .rodape{{ background:#0d3d6e; border-top:3px solid #c8991a; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; margin-top:18px; }}
+  .rodape{{ background:#0d3d6e; border-top:3px solid #c8991a; padding:11px 20px; display:flex; justify-content:space-between; align-items:center; margin-top:16px; }}
   .rodape-txt{{ font-size:11px; color:rgba(255,255,255,.45); }}
   .rodape-url{{ font-size:11px; color:rgba(255,255,255,.35); }}
 </style>
@@ -1627,6 +1669,21 @@ def gerar_html_imagem(m):
   </div>
 </div>
 
+<!-- MAPA DE COBERTURA -->
+<div class="bloco-mapa">
+  <div class="mapa-tit">
+    Cobertura Municipal — Santa Catarina
+    <span class="mapa-badge">{fmt_n(m['total_munis'])} de 295 municípios · {m['pct_sc']:.1f}% da população</span>
+  </div>
+  {mapa_svg}
+</div>
+
+<!-- MESORREGIÕES -->
+<div class="meso-grid-img">
+  {meso_html}
+</div>
+
+<!-- TOP 5 CONTEÚDOS -->
 <div class="bloco-full">
   <div class="secao">
     <div class="s-head">
@@ -1637,6 +1694,7 @@ def gerar_html_imagem(m):
   </div>
 </div>
 
+<!-- CIDADES | EMISSORAS -->
 <div class="bloco-2col">
   <div class="secao">
     <div class="s-head"><span class="s-tit">Cidades</span><span class="s-badge">veiculações</span></div>
@@ -1715,7 +1773,7 @@ if __name__ == "__main__":
         nome_png = caminho.with_suffix(".png").name
         caminho_png = OUTPUT_DIR / nome_png
         print(f"  Exportando imagem PNG ({caminho_png})...")
-        html_img = gerar_html_imagem(m)
+        html_img = gerar_html_imagem(m, cent)
         with tempfile.NamedTemporaryFile(suffix=".html", prefix="relatorio_img_", delete=False) as _f:
             tmp_html = Path(_f.name)
         tmp_html.write_text(html_img, encoding="utf-8")
