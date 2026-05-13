@@ -27,7 +27,8 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 TAXA_ESCUTA_RADIO = 0.80
-LIMIAR_LACUNA = 5_000
+LIMIAR_LACUNA    = 5_000
+LIMIAR_ESTRATEGICO = 30_000
 TOP_N_RADIOS = 10
 POP_SC_TOTAL = 7_610_361
 
@@ -1271,7 +1272,29 @@ if mapa_abrangencia and df_pop is not None:
                     .query(f"Populacao > {LIMIAR_LACUNA}")
                     .sort_values("Populacao", ascending=False)
                     .head(15))
- 
+
+    # Lacunas mensais: municípios >30k sem cobertura no mês mais recente do dataset
+    # (nem veiculação direta nem abrangência de sinal de rádio que veiculou naquele mês)
+    ultimo_mes = df["AnoMes"].max()
+    df_mes = df[df["AnoMes"] == ultimo_mes]
+    radios_mes = set(df_mes["Radio_norm"].dropna().unique())
+    municipios_abr_mes = set()
+    for rn in radios_mes:
+        if rn in mapa_abrangencia:
+            municipios_abr_mes.update(mapa_abrangencia[rn])
+        else:
+            sede = df_mes[df_mes["Radio_norm"] == rn]["Cidade_norm"].dropna()
+            if len(sede) > 0:
+                municipios_abr_mes.add(sede.iloc[0])
+    municipios_veiculacao_mes = set(df_mes["Cidade_norm"].dropna().unique())
+    municipios_cobertos_mes = municipios_abr_mes | municipios_veiculacao_mes
+    df_pop["coberto_mes"] = df_pop["Cidade_norm"].isin(municipios_cobertos_mes)
+    lacunas_mensais = (df_pop[~df_pop["coberto_mes"]]
+                       .query(f"Populacao > {LIMIAR_ESTRATEGICO}")
+                       .sort_values("Populacao", ascending=False)
+                       .head(15))
+    print(f"     Lacunas mensais ({ultimo_mes}, >{LIMIAR_ESTRATEGICO//1000}k hab.): {len(lacunas_mensais)} cidades")
+
     n_cobertos_abr = df_pop["coberto_abrangencia"].sum()
     pop_coberta_abr = df_pop[df_pop["coberto_abrangencia"]]["Populacao"].sum()
  
@@ -1283,6 +1306,8 @@ if mapa_abrangencia and df_pop is not None:
     print(f"     Lacunas reais (>{LIMIAR_LACUNA//1000}k hab.): {len(lacunas_real)} cidades")
 else:
     lacunas_real = lacunas  # fallback para o cálculo anterior
+    lacunas_mensais = pd.DataFrame()
+    ultimo_mes = df["AnoMes"].max()
     municipios_cobertos_real = set(df["Cidade_norm"].dropna().unique())
     print("  ⚠ Abrangência não disponível — lacunas calculadas pelo método anterior")
  
@@ -1920,32 +1945,49 @@ nota_rodape(ax, "*Impacto = pop. total dos municípios no sinal da rádio (abran
 fig.tight_layout()
 salvar(fig, "10_ranking_radios_por_impacto.png")
 
-# ── 11 Gini + lacunas ────────────────────────────────────────────────────────
+# ── 11 Lacunas mensais + lacunas históricas ───────────────────────────────────
 fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# axes[0] — Lacunas do mês mais recente (sem cobertura direta nem por abrangência)
 ax = axes[0]
-v = sorted(alcance["Veiculacoes"].tolist()); n = len(v); s = sum(v)
-lx = [i/n for i in range(n+1)]
-ly = [0] + [sum(v[:i+1])/s for i in range(n)]
-ax.plot(lx, ly, color=COR_PRINCIPAL, linewidth=2, label="Rádio Alesc")
-ax.plot([0,1],[0,1], "--", color="#888", linewidth=1, label="Distribuição perfeita")
-ax.fill_between(lx, ly, lx, alpha=0.15, color=COR_PRINCIPAL)
-ax.set_title(f"Curva de Lorenz — Cobertura Territorial\nGini = {gini_val:.3f}", fontweight="bold")
-ax.set_xlabel("Proporção de municípios"); ax.set_ylabel("Proporção de veiculações")
-ax.legend()
-interp = ("distribuída" if gini_val<0.4 else "moderadamente concentrada" if gini_val<0.6 else "fortemente concentrada")
-nota_rodape(ax, f"Cobertura {interp}")
+if not lacunas_mensais.empty:
+    ax.barh(lacunas_mensais["Municipio_IBGE"][::-1],
+            lacunas_mensais["Populacao"][::-1] / 1000,
+            color=COR_ALERTA)
+    ax.set_xlabel("População (mil habitantes)")
+    ax.set_title(
+        f"Lacunas do Mês — {ultimo_mes}\n"
+        f"Cidades >{LIMIAR_ESTRATEGICO//1000}k hab. sem veiculação direta ou por abrangência",
+        fontweight="bold"
+    )
+    nota_rodape(ax, "Sem veiculação direta = conteúdo Alesc não produzido/enviado para a cidade  |  "
+                    "Sem abrangência = fora do sinal de qualquer rádio parceira ativa no mês")
+else:
+    ax.text(0.5, 0.5, "Todas as cidades >30k foram alcançadas\nneste mês", ha="center", va="center",
+            transform=ax.transAxes, fontsize=12, color="#4caf50")
+    ax.set_title(f"Lacunas do Mês — {ultimo_mes}\nCidades >{LIMIAR_ESTRATEGICO//1000}k hab.",
+                 fontweight="bold")
+
+# axes[1] — Lacunas históricas acumuladas (todo o período do dataset)
 ax = axes[1]
 if not lacunas_real.empty:
-    ax.barh(lacunas_real["Municipio_IBGE"][::-1], lacunas_real["Populacao"][::-1]/1000, color=COR_ALERTA)
+    ax.barh(lacunas_real["Municipio_IBGE"][::-1],
+            lacunas_real["Populacao"][::-1] / 1000,
+            color="#e57373")
     ax.set_xlabel("População (mil habitantes)")
-    ax.set_title(f"Lacunas Estratégicas\nCidades >{LIMIAR_LACUNA//1000}k hab. sem cobertura", fontweight="bold")
-    nota_rodape(ax, "Cada cidade = oportunidade de expansão de parceria")
+    ax.set_title(
+        f"Lacunas Históricas — Acumulado\n"
+        f"Cidades >{LIMIAR_LACUNA//1000}k hab. nunca alcançadas (direto ou por abrangência)",
+        fontweight="bold"
+    )
+    nota_rodape(ax, "Acumulado desde o início do dataset  |  Cada cidade = oportunidade de expansão de parceria")
 else:
     ax.text(0.5, 0.5, "Sem lacunas acima do limiar", ha="center", va="center",
             transform=ax.transAxes, fontsize=12)
-    ax.set_title("Lacunas Estratégicas", fontweight="bold")
+    ax.set_title("Lacunas Históricas — Acumulado", fontweight="bold")
+
 fig.tight_layout()
-salvar(fig, "11_gini_e_lacunas.png")
+salvar(fig, "11_lacunas_mensal_e_historico.png")
 '''
 # ── 12 Municípios por mês ─────────────────────────────────────────────────────
 mun_mes = df.groupby("AnoMes")["Cidade"].nunique().reset_index(name="Municipios")
