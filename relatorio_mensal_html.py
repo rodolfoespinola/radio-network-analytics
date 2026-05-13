@@ -1787,18 +1787,22 @@ if __name__ == "__main__":
                 stdout=devnull, stderr=devnull, timeout=45
             )
             if caminho_png.exists():
-                # Recorta espaço em branco do rodapé
                 try:
                     from PIL import Image as _Img
                     import numpy as _np
                     img = _Img.open(str(caminho_png)).convert("RGB")
+                    # Recorta espaço em branco do rodapé
                     arr = _np.array(img)
                     mask = (arr < 248).any(axis=2)
                     rows = _np.where(mask.any(axis=1))[0]
                     if len(rows):
                         bottom = min(int(rows[-1]) + 30, img.height)
                         img = img.crop((0, 0, img.width, bottom))
-                        img.save(str(caminho_png), optimize=True)
+                    # Escala para 1280px de largura (limiar HD do WhatsApp)
+                    hd_w = 1280
+                    hd_h = int(img.height * hd_w / img.width)
+                    img = img.resize((hd_w, hd_h), _Img.LANCZOS)
+                    img.save(str(caminho_png), optimize=True, quality=92)
                 except Exception:
                     pass
                 print(f"  ✓ {caminho_png}  ({caminho_png.stat().st_size/1024:.0f} KB)")
