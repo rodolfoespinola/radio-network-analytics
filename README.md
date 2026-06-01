@@ -66,15 +66,22 @@ Starting from broadcast distribution data exported by media management platforms
 ```
 analise_alesc.py               # main analysis script
 auditoria.py                   # data validation and audit
-mapa_comercial.py              # interactive coverage map per broadcast
+relatorio_mensal_html.py       # monthly HTML report + PNG for WhatsApp
+gerar_mapas_mes.py             # top-3 commercial coverage maps for the month
+mapa_comercial.py              # interactive coverage map per broadcast (library + interactive mode)
 mapa_interativo_intensidade.py # interactive broadcast intensity map
 data/
+  ├── radios_municipios_*.csv  # signal coverage mapping per station
   ├── cache/                   # automatic IBGE API cache
   └── [monthly input files — not included in this repository]
 outputs/
-  ├── *.png                    # charts
-  ├── *.csv / *.xlsx           # tables
-  └── relatorio_analitico.txt
+  ├── dataset_consolidado.csv          # consolidated broadcast dataset
+  ├── ranking_impacto_alesc_auditado.csv
+  ├── relatorio_radio_alesc_*.html     # monthly reports
+  ├── relatorio_radio_alesc_*.png      # PNG exports for WhatsApp
+  ├── mapa_comercial_TOP*_*.html       # top-3 commercial coverage maps
+  ├── *.png                            # charts
+  └── *.csv / *.xlsx                   # tables
 ```
 
 ---
@@ -103,13 +110,58 @@ Real broadcast data files are not included in this repository. The system was bu
 
 ---
 
+## Monthly workflow
+
+### 1. Monthly HTML report
+
+Generates a full HTML report for a given month, with charts, tables, and reach statistics.
+
+```bash
+cd ~/coding/radio_alesc
+source radio/bin/activate
+
+# Interactive menu (lists available months)
+python3 relatorio_mensal_html.py
+
+# Specific month
+python3 relatorio_mensal_html.py --mes 2026-05
+
+# Specific month + PNG export for WhatsApp
+python3 relatorio_mensal_html.py --mes 2026-05 --imagem
+```
+
+The `--imagem` flag renders a compact layout optimized for mobile (800 px → scaled to 1280 px HD) using Firefox in headless mode. Requires Firefox installed and the `Pillow` package (`pip install Pillow`).
+
+Output: `outputs/relatorio_radio_alesc_mai_2026.html` (and `.png` if `--imagem`).
+
+---
+
+### 2. Top-3 commercial coverage maps
+
+Ranks all commercials aired in the month by population reach and generates interactive HTML maps for the top 3.
+
+```bash
+cd ~/coding/radio_alesc
+source radio/bin/activate
+
+# Previous month (default)
+python3 gerar_mapas_mes.py
+
+# Specific month
+python3 gerar_mapas_mes.py --mes 2026-05
+```
+
+Output: `outputs/mapa_comercial_TOP1_MAI2026_*.html`, `TOP2`, `TOP3` — all opened in the browser automatically.
+
+---
+
 ## Utility scripts
 
 **`auditoria.py`** — validates input data, detects inconsistencies, and generates a validation report before the main analysis runs.
 
-**`mapa_comercial.py`** — generates an interactive coverage map for a specific broadcast, crossing the station network with each radio's signal coverage municipalities.
+**`mapa_comercial.py`** — interactive coverage map for a specific broadcast (search by name). Also used as a library by `gerar_mapas_mes.py`.
 
-**`mapa_interativo_intensidade.py`** — generates an interactive broadcast intensity map by municipality, with a population layer and strategic gap highlighting.
+**`mapa_interativo_intensidade.py`** — interactive broadcast intensity map by municipality, with a population layer and strategic gap highlighting.
 
 ---
 

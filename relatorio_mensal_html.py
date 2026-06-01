@@ -12,7 +12,7 @@ python3 relatorio_mensal_html.py --mes 2025-11
 python3 relatorio_mensal_html.py --mes 2026-03
 
 # Com imagem
-ython3 relatorio_mensal_html.py --mes 2025-11 --imagem
+python3 relatorio_mensal_html.py --mes 2025-11 --imagem
 
 # Sem argumento: abre o menu e lista os anos/meses disponíveis
 python3 relatorio_mensal_html.p
